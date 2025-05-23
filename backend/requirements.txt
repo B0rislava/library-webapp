@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+bcrypt
+python-jose
+pydantic[email]
+flask_jwt_extended
