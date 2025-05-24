@@ -21,6 +21,7 @@ class Book(Base):
     title = Column(String, index=True)
     author = Column(String)
     year = Column(Integer)
+    isbn = Column(String, nullable=True)
     available = Column(Boolean, default=True)
 
 

@@ -7,9 +7,9 @@ def init_db():
 def seed_books():
     db = SessionLocal()
     books = [
-        {"title": "1984", "author": "George Orwell", "year": 1949, "available": True},
-        {"title": "To Kill a Mockingbird", "author": "Harper Lee", "year": 1960, "available": True},
-        {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "year": 1925, "available": True},
+        {"title": "1984", "author": "George Orwell", "year": 1949, "isbn": "9786589008194", "available": True,},
+        {"title": "To Kill a Mockingbird", "author": "Harper Lee", "year": 1960,"isbn":"9780060888695", "available": True},
+        {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "year": 1925,"isbn":"9783257691078", "available": True},
     ]
 
     for b in books:
