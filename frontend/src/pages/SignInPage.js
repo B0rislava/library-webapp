@@ -20,7 +20,7 @@ function SigninPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8002/auth/signin", {
+      const response = await fetch("http://127.0.0.1:8003/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -28,8 +28,9 @@ function SigninPage() {
 
       const data = await response.json();
 
-      if (response.ok && data.token) {
-        localStorage.setItem("token", data.token);
+      if (response.ok && data.access_token && data.refresh_token) {
+        localStorage.setItem("accessToken", data.access_token);
+        localStorage.setItem("refreshToken", data.refresh_token);
         navigate("/books");
       } else {
         setError(data.detail || "Invalid credentials.");
