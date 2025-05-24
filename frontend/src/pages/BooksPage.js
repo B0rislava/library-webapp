@@ -1,26 +1,30 @@
 import React, { useEffect, useState } from "react";
+import { authFetch } from "../utils/authFetch";
 
 function BooksPage() {
   const [books, setBooks] = useState([]);
+  const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchBooks() {
       try {
-        const token = localStorage.getItem("token");
-        const response = await fetch("http://127.0.0.1:8002/books/", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch books");
+        const resBooks = await authFetch("http://127.0.0.1:8003/books/");
+        const resUser = await authFetch("http://127.0.0.1:8003/users/me");
+
+        if (!resBooks.ok || !resUser.ok) {
+          throw new Error("Failed to fetch data");
         }
-        const data = await response.json();
-        setBooks(data);
+
+        const booksData = await resBooks.json();
+        const userData = await resUser.json();
+
+        setBooks(booksData);
+        setUserRole(userData.role);
+
       } catch (err) {
-        setError(err.message || "Error fetching books");
+        setError(err.message || "Error loading data");
       } finally {
         setLoading(false);
       }
@@ -30,14 +34,9 @@ function BooksPage() {
   }, []);
 
   async function handleReserve(bookId) {
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`http://127.0.0.1:8002/books/${bookId}/reserve`, {
+      const response = await authFetch(`http://127.0.0.1:8003/books/${bookId}/reserve`, {
         method: "PUT",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -58,12 +57,25 @@ function BooksPage() {
     }
   }
 
+  function handleEdit(book) {
+    alert(`Edit: ${book.title}`);
+  }
+
+  function handleAddNewBook() {
+    alert("Open Add Book form");
+  }
+
   if (loading) return <p>Loading books...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
     <div style={{ maxWidth: "600px", margin: "auto", padding: "20px" }}>
-      <h2>Available Books</h2>
+      <h2>Books</h2>
+      {userRole === "librarian" && (
+        <button onClick={handleAddNewBook} style={{ marginBottom: "20px" }}>
+          + Add New Book
+        </button>
+      )}
       {books.length === 0 ? (
         <p>No books found.</p>
       ) : (
@@ -74,8 +86,13 @@ function BooksPage() {
               <p><strong>Author:</strong> {book.author}</p>
               <p><strong>Year:</strong> {book.year}</p>
               <p><strong>Available:</strong> {book.available ? "Yes" : "No"}</p>
-              {book.available && (
+
+              {userRole && userRole === "user" && book.available && (
                 <button onClick={() => handleReserve(book.id)}>Reserve</button>
+              )}
+
+              {userRole && userRole === "librarian" && (
+                <button onClick={() => handleEdit(book)}>Edit Info</button>
               )}
             </li>
           ))}
