@@ -4,17 +4,19 @@ import { authFetch } from "../utils/authFetch";
 function ProfilePage() {
   const [user, setUser] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [showConfirm, setShowConfirm] = useState(false);
-  const [userBooks, setUserBooks] = useState([]);  // <-- добавено
+  const [userBooks, setUserBooks] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await authFetch("http://127.0.0.1:8003/users/me");
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data");
-        }
+        if (!response.ok) throw new Error("Failed to fetch user data");
         const data = await response.json();
         setUser(data);
       } catch (error) {
@@ -24,24 +26,22 @@ function ProfilePage() {
     fetchProfile();
   }, []);
 
-
   useEffect(() => {
-  async function fetchUserBooks() {
-    try {
-      const response = await authFetch("http://127.0.0.1:8003/books/user-books");
-      if (!response.ok) throw new Error("Failed to fetch user books");
-      const data = await response.json();
-      setUserBooks(data);
-    } catch (error) {
-      console.error("Error fetching user books:", error);
+    async function fetchUserBooks() {
+      try {
+        const response = await authFetch(
+          "http://127.0.0.1:8003/books/user-books",
+        );
+        if (!response.ok) throw new Error("Failed to fetch user books");
+        const data = await response.json();
+        setUserBooks(data);
+      } catch (error) {
+        console.error("Error fetching user books:", error);
+      }
     }
-  }
 
-  if (user) {
-    fetchUserBooks();
-  }
-}, [user]);
-
+    if (user) fetchUserBooks();
+  }, [user]);
 
   useEffect(() => {
     if (editing && user) {
@@ -70,9 +70,7 @@ function ProfilePage() {
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(text);
-      }
+      if (!response.ok) throw new Error(text);
 
       const updatedUser = JSON.parse(text);
       setUser(updatedUser);
@@ -98,59 +96,147 @@ function ProfilePage() {
     window.location.href = "/";
   };
 
+  const handleRemoveBook = async (bookId) => {
+    try {
+      const response = await authFetch(
+        `http://127.0.0.1:8003/books/user-books/${bookId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
-  const handleCancelReservation = async (bookId) => {
-  try {
-    const response = await authFetch(`http://127.0.0.1:8003/books/${bookId}/cancel`, {
-      method: "DELETE",
-    });
+      if (!response.ok) throw new Error("Failed to remove Book");
 
-    if (!response.ok) {
-      throw new Error("Failed to cancel reservation");
+      setUserBooks((prevBooks) =>
+        prevBooks.filter((book) => book.book_id !== bookId),
+      );
+    } catch (error) {
+      console.error("Error removing book:", error);
+      alert("Failed to remove Book");
     }
+  };
 
-    // Обнови списъка локално
-    setUserBooks(prevBooks => prevBooks.filter(book => book.id !== bookId));
-  } catch (error) {
-    console.error("Error cancelling reservation:", error);
-    alert("Failed to cancel reservation");
-  }
-};
+  const handleStatusChange = async (bookId, newStatus) => {
+    console.log("Changing status to:", newStatus);
+    try {
+      await authFetch(`http://127.0.0.1:8003/books/user-books/${bookId}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus }),
+      });
 
+      setUserBooks((prevBooks) =>
+        prevBooks.map((book) =>
+          book.book_id === bookId ? { ...book, status: newStatus } : book,
+        ),
+      );
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update status");
+    }
+  };
+
+  const handleProgressChange = async (bookId, newProgress) => {
+    try {
+      await authFetch(`http://127.0.0.1:8003/books/user-books/${bookId}`, {
+        method: "PUT",
+        body: JSON.stringify({ progress: parseInt(newProgress) }),
+      });
+
+      setUserBooks((prevBooks) =>
+        prevBooks.map((book) =>
+          book.book_id === bookId
+            ? { ...book, progress: parseInt(newProgress) }
+            : book,
+        ),
+      );
+    } catch (error) {
+      console.error("Error updating progress:", error);
+      alert("Failed to update progress");
+    }
+  };
 
   if (!user) return <p>Loading...</p>;
 
   return (
-    <div style={{ maxWidth: "500px", margin: "auto" }}>
+    <div style={{ maxWidth: "600px", margin: "auto" }}>
       <h2>Profile</h2>
       {!editing ? (
         <>
-          <p><strong>Name:</strong> {user.name}</p>
-          <p><strong>Email:</strong> {user.email}</p>
+          <p>
+            <strong>Name:</strong> {user.name}
+          </p>
+          <p>
+            <strong>Email:</strong> {user.email}
+          </p>
 
-          {/* Тук добавяме списъка с книги */}
-          <h3>Your Reserved Books:</h3>
+          <h3>Your books:</h3>
           {userBooks.length === 0 ? (
-            <p>You have no reserved books.</p>
+            <p>You have no added books.</p>
           ) : (
             <ul>
               {userBooks.map((book) => (
-                <li key={book.id}>
-                  <strong>{book.title}</strong> by {book.author} ({book.year})
-                  <button
-                    style={{ marginLeft: "10px", color: "red" }}
-                    onClick={() => handleCancelReservation(book.id)}
-                   >
-                   Cancel Reservation
-                   </button>
+                <li key={book.book_id} style={{ marginBottom: "20px" }}>
+                  <div>
+                    <strong>{book.title}</strong> by {book.author} ({book.year})
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "15px",
+                      marginTop: "5px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <label>Status: </label>
+                      <select
+                        value={book.status}
+                        onChange={(e) =>
+                          handleStatusChange(book.book_id, e.target.value)
+                        }
+                      >
+                        <option value="Not started">Not started</option>
+                        <option value="Started">Started</option>
+                        <option value="Finished">Finished</option>
+                      </select>
+                    </div>
+
+                    {book.status === "Started" && (
+                      <div>
+                        <label>Progress: </label>
+                        <input
+                          type="number"
+                          value={book.progress}
+                          min="0"
+                          style={{ width: "30px" }}
+                          onChange={(e) =>
+                            handleProgressChange(book.book_id, e.target.value)
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      style={{ color: "red", height: "fit-content" }}
+                      onClick={() => handleRemoveBook(book.book_id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
 
           <button onClick={() => setEditing(true)}>Edit Profile</button>
-          <button onClick={handleLogout} style={{ marginLeft: "10px" }}>Logout</button>
-          <button onClick={() => setShowConfirm(true)} style={{ color: "red", marginLeft: "10px" }}>
+          <button onClick={handleLogout} style={{ marginLeft: "10px" }}>
+            Logout
+          </button>
+          <button
+            onClick={() => setShowConfirm(true)}
+            style={{ color: "red", marginLeft: "10px" }}
+          >
             Delete Profile
           </button>
         </>
@@ -166,16 +252,22 @@ function ProfilePage() {
             type="email"
             placeholder="Email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
           />
           <input
             type="password"
             placeholder="New Password"
             value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
           />
           <button type="submit">Save</button>
-          <button type="button" onClick={() => setEditing(false)}>Cancel</button>
+          <button type="button" onClick={() => setEditing(false)}>
+            Cancel
+          </button>
         </form>
       )}
 
