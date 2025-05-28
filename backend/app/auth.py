@@ -7,7 +7,6 @@ from .database import SessionLocal, get_db
 from sqlalchemy.orm import Session
 from .models_db import User as DBUser
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import Security
 from datetime import datetime, timedelta
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
@@ -117,7 +116,7 @@ def refresh_token(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
-    # Издаваме нов access токен
+    # New access token
     access_token = create_access_token({"email": user.email, "role": user.role})
     return {
         "access_token": access_token,
@@ -128,13 +127,13 @@ def refresh_token(
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET, algorithm="HS256")
 
 def create_refresh_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET, algorithm="HS256")
 

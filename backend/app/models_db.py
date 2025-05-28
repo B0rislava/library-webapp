@@ -1,6 +1,7 @@
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
+from enum import Enum
+from sqlalchemy import Enum as SqlEnum
 
 from .database import Base
 
@@ -13,6 +14,8 @@ class User(Base):
     password = Column(String, nullable=False)
     role = Column(String, nullable=False)
 
+    user_books = relationship("UserBook", back_populates="user")
+
 
 class Book(Base):
     __tablename__ = "books"
@@ -22,20 +25,26 @@ class Book(Base):
     author = Column(String)
     year = Column(Integer)
     isbn = Column(String, nullable=True)
-    available = Column(Boolean, default=True)
+    cover_url = Column(String, nullable=True)
+    pdf_url = Column(String, nullable=True)
+
+    book_users = relationship("UserBook", back_populates="book")
 
 
-class Rental(Base):
-    __tablename__ = "rentals"
+class ReadingStatus(str, Enum):
+    unread = "Not started"
+    reading = "Started"
+    read = "Finished"
+
+class UserBook(Base):
+    __tablename__ = "user_books"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     book_id = Column(Integer, ForeignKey("books.id"))
-    borrowed_at = Column(DateTime, default=datetime.now)
+    status = Column(SqlEnum(ReadingStatus), default=ReadingStatus.unread)
+    progress = Column(Integer, default=0)
 
-    user = relationship("User", back_populates="rentals")
-    book = relationship("Book", back_populates="rentals")
+    user = relationship("User", back_populates="user_books")
+    book = relationship("Book", back_populates="book_users")
 
-
-User.rentals = relationship("Rental", back_populates="user", cascade="all, delete-orphan")
-Book.rentals = relationship("Rental", back_populates="book", cascade="all, delete-orphan")

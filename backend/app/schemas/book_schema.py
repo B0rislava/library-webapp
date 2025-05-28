@@ -1,23 +1,26 @@
 from pydantic import BaseModel
-
-class Book(BaseModel):
-    title: str
-    author: str
-    year: int
-    isbn: str
-
+from typing import Optional
+from ..models_db import ReadingStatus
 
 class BookCreate(BaseModel):
     title: str
     author: str
     year: int
+    isbn: str
+    cover_url: Optional[str] = None
+    pdf_url: Optional[str] = None
 
-class BookResponse(BaseModel):
-    id: int
+class UserBookUpdate(BaseModel):
+    status: Optional[ReadingStatus] = None
+    progress: Optional[int] = None
+
+class UserBookResponse(BaseModel):
+    book_id: int
     title: str
     author: str
     year: int
-    available: bool
+    status: ReadingStatus
+    progress: int
 
     class Config:
         from_attributes = True

@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, joinedload
 from ..auth import get_current_user, DBUser
-from ..models_db import Book, Rental
+from ..models_db import Book, UserBook
 from ..database import get_db
-from ..schemas.book_schema import Book as BookSchema
+from ..schemas.book_schema import UserBookUpdate, UserBookResponse
+from typing import List
+from ..schemas.book_schema import BookCreate
 
 router = APIRouter(tags=["Books"])
 
@@ -13,13 +15,21 @@ def require_librarian(user: DBUser = Depends(get_current_user)):
     return user
 
 @router.get("/")
-def get_books(db: Session = Depends(get_db)):
-    books = db.query(Book).all()
-    return books
+def get_books(search: str = "", db: Session = Depends(get_db)):
+    query = db.query(Book)
+
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.filter(
+            (Book.title.ilike(search_term)) |
+            (Book.author.ilike(search_term))
+        )
+
+    return query.all()
 
 
-@router.put("/{book_id}/reserve")
-def reserve_book(
+@router.post("/user-books/{book_id}", response_model=UserBookResponse)
+def add_book_to_user_profile(
     book_id: int,
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user),
@@ -28,57 +38,121 @@ def reserve_book(
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    if not book.available:
-        raise HTTPException(status_code=400, detail="Book already reserved")
+    existing = db.query(UserBook).filter(
+        UserBook.user_id == current_user.id, UserBook.book_id == book_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Book already in your profile")
 
-    book.available = False
-    rental = Rental(user_id=current_user.id, book_id=book.id)
-    db.add(rental)
-
+    userbook = UserBook(
+        user_id=current_user.id,
+        book_id=book_id,
+        status="Not started",
+        progress=0,
+    )
+    db.add(userbook)
     db.commit()
-    db.refresh(book)
-    return {"message": f"Book '{book.title}' reserved by {current_user.name}"}
+    db.refresh(userbook)
 
+    return UserBookResponse(
+        book_id=book.id,
+        title=book.title,
+        author=book.author,
+        year=book.year,
+        status=userbook.status,
+        progress=userbook.progress,
+    )
 
-
-@router.get("/user-books")
+@router.get("/user-books", response_model=List[UserBookResponse])
 def get_user_books(
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user),
 ):
-    rentals = db.query(Rental).filter(Rental.user_id == current_user.id).all()
-    books = [rental.book for rental in rentals]
-    return books
+    userbooks = (
+        db.query(UserBook)
+        .options(joinedload(UserBook.book))
+        .filter(UserBook.user_id == current_user.id)
+        .all()
+    )
 
+    response = []
+    #optimize - joined query, relation book = relationship("Book") in UserBook model
+    for ub in userbooks:
+        book = db.query(Book).filter(Book.id == ub.book_id).first()
+        response.append(
+            UserBookResponse(
+                book_id=book.id,
+                title=book.title,
+                author=book.author,
+                year=book.year,
+                status=ub.status,
+                progress=ub.progress,
+            )
+        )
+    return response
 
+@router.put("/user-books/{book_id}", response_model=UserBookResponse)
+def update_user_book(
+    book_id: int,
+    userbook_data: UserBookUpdate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user),
+):
+    userbook = db.query(UserBook).filter(
+        UserBook.user_id == current_user.id,
+        UserBook.book_id == book_id
+    ).first()
+    if not userbook:
+        raise HTTPException(status_code=404, detail="Book not found in your profile")
 
-@router.delete("/{book_id}/cancel")
-def cancel_reservation(
+    if userbook_data.status is not None:
+        userbook.status = userbook_data.status
+    if userbook_data.progress is not None:
+        userbook.progress = userbook_data.progress
+
+    db.commit()
+    db.refresh(userbook)
+
+    book = db.query(Book).filter(Book.id == book_id).first()
+
+    return UserBookResponse(
+        book_id=book.id,
+        title=book.title,
+        author=book.author,
+        year=book.year,
+        status=userbook.status,
+        progress=userbook.progress,
+    )
+
+@router.delete("/user-books/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_book_from_user_profile(
     book_id: int,
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user),
 ):
-    rental = db.query(Rental).filter(
-        Rental.book_id == book_id,
-        Rental.user_id == current_user.id
+    userbook = db.query(UserBook).filter(
+        UserBook.user_id == current_user.id,
+        UserBook.book_id == book_id
     ).first()
-    if not rental:
-        raise HTTPException(status_code=404, detail="Reservation not found")
+    if not userbook:
+        raise HTTPException(status_code=404, detail="Book not found in your profile")
 
-    book = db.query(Book).filter(Book.id == book_id).first()
-    if book:
-        book.available = True
-
-    db.delete(rental)
+    db.delete(userbook)
     db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return
 
-
+@router.get("/{book_id}")
+def get_book(book_id: int, db: Session = Depends(get_db)):
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
 
 # libarians
 @router.post("/", dependencies=[Depends(require_librarian)])
-def create_book(book: BookSchema, db: Session = Depends(get_db)):
-    new_book = Book(**book.model_dump(), available=True)
+def create_book(book: BookCreate, db: Session = Depends(get_db)):
+    book_data = book.model_dump()
+    new_book = Book(**book_data)
     db.add(new_book)
     db.commit()
     db.refresh(new_book)
@@ -86,7 +160,7 @@ def create_book(book: BookSchema, db: Session = Depends(get_db)):
 
 
 @router.put("/{book_id}", dependencies=[Depends(require_librarian)])
-def update_book(book_id: int, book: BookSchema, db: Session = Depends(get_db)):
+def update_book(book_id: int, book: BookCreate, db: Session = Depends(get_db)):
     db_book = db.query(Book).filter(Book.id == book_id).first()
     if not db_book:
         raise HTTPException(status_code=404, detail="Book not found")

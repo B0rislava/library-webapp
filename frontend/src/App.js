@@ -6,6 +6,7 @@ import BooksPage from "./pages/BooksPage";
 import ProfilePage from "./pages/ProfilePage";
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
+import BookDetail from "./pages/BookDetail";
 
 function AppContent() {
   const location = useLocation();
@@ -27,6 +28,16 @@ function AppContent() {
             </PrivateRoute>
           }
         />
+
+        <Route
+          path="/books/:id"
+          element={
+            <PrivateRoute>
+              <BookDetail />
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/profile"
           element={
