@@ -24,7 +24,7 @@ class Book(Base):
     title = Column(String, index=True)
     author = Column(String)
     year = Column(Integer)
-    isbn = Column(String, nullable=True)
+    description = Column(String, nullable=True)
     cover_url = Column(String, nullable=True)
     pdf_url = Column(String, nullable=True)
 

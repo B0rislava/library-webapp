@@ -4,8 +4,8 @@ import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import BooksPage from "./pages/BooksPage";
 import ProfilePage from "./pages/ProfilePage";
-import Navbar from "./components/Navbar";
-import PrivateRoute from "./components/PrivateRoute";
+import Navbar from "./utils/Navbar";
+import PrivateRoute from "./utils/PrivateRoute";
 import BookDetail from "./pages/BookDetail";
 
 function AppContent() {
