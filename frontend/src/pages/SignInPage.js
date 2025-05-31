@@ -1,46 +1,17 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useForm } from "../hooks/useForm";
 import "../styles/SignInPage.css";
 
 function SigninPage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { login, error, loading } = useAuth();
+  const { values, handleChange } = useForm({email: "", password: "",});
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError("");
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch("http://127.0.0.1:8003/auth/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.access_token && data.refresh_token) {
-        localStorage.setItem("accessToken", data.access_token);
-        localStorage.setItem("refreshToken", data.refresh_token);
-        navigate("/books");
-      } else {
-        setError(data.detail || "Invalid credentials.");
-      }
-    } catch (err) {
-      setError("Error connecting to the server.");
-    } finally {
-      setLoading(false);
-    }
+    login(values.email, values.password);
   };
 
   return (
@@ -59,7 +30,7 @@ function SigninPage() {
               type="email"
               name="email"
               placeholder="Email"
-              value={formData.email}
+              value={values.email}
               onChange={handleChange}
               required
             />
@@ -70,7 +41,7 @@ function SigninPage() {
               type="password"
               name="password"
               placeholder="Password"
-              value={formData.password}
+              value={values.password}
               onChange={handleChange}
               required
             />

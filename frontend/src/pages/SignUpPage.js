@@ -1,61 +1,35 @@
-import React, { useState } from "react";
+import React from "react";
+import { useState} from "react"
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useForm } from "../hooks/useForm";
 import "../styles/SignUpPage.css";
 
 function SignupPage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "user",
-  });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { signup, error: authError, loading } = useAuth();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError("");
-  };
+  const { values, handleChange, resetForm } = useForm({name: "", email: "", password: "", confirmPassword: "", role: "user",});
+
+  const [validationError, setValidationError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+    // Client-side validation
+    if (values.password !== values.confirmPassword) {
+      setValidationError("Passwords do not match");
       return;
     }
 
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("http://127.0.0.1:8003/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        navigate("/signin");
-      } else {
-        setError(data.detail || data.message || "Registration failed.");
-      }
-    } catch (err) {
-      setError("Error connecting to the server.");
-    } finally {
-      setLoading(false);
+    if (values.password.length < 8) {
+      setValidationError("Password must be at least 8 characters");
+      return;
     }
+
+    setValidationError("");
+    await signup(values.name, values.email, values.password, values.role);
+    resetForm();
   };
 
   return (
@@ -74,7 +48,7 @@ function SignupPage() {
               type="text"
               name="name"
               placeholder="Full Name"
-              value={formData.name}
+              value={values.name}
               onChange={handleChange}
               required
             />
@@ -85,7 +59,7 @@ function SignupPage() {
               type="email"
               name="email"
               placeholder="Email"
-              value={formData.email}
+              value={values.email}
               onChange={handleChange}
               required
             />
@@ -96,9 +70,10 @@ function SignupPage() {
               type="password"
               name="password"
               placeholder="Password"
-              value={formData.password}
+              value={values.password}
               onChange={handleChange}
               required
+              minLength="8"
             />
           </div>
 
@@ -107,7 +82,7 @@ function SignupPage() {
               type="password"
               name="confirmPassword"
               placeholder="Confirm Password"
-              value={formData.confirmPassword}
+              value={values.confirmPassword}
               onChange={handleChange}
               required
             />
@@ -117,7 +92,7 @@ function SignupPage() {
             <label>Role:</label>
             <select
               name="role"
-              value={formData.role}
+              value={values.role}
               onChange={handleChange}
               className="role-select"
             >
@@ -126,7 +101,11 @@ function SignupPage() {
             </select>
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {(validationError || authError) && (
+            <div className="error-message">
+              {validationError || authError}
+            </div>
+          )}
 
           <button
             type="submit"
