@@ -1,4 +1,5 @@
 import React from "react";
+import "./BookModal.css";
 
 function BookModal({ isOpen, onClose, onSubmit, isEdit, formData, setFormData }) {
   const handleChange = (e) => {
@@ -8,22 +9,22 @@ function BookModal({ isOpen, onClose, onSubmit, isEdit, formData, setFormData })
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalData = {
-        ...formData,
-        cover_url:
-         !formData.cover_url || formData.cover_url.trim() === ""
-        ? "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"
-        : formData.cover_url,
+      ...formData,
+      cover_url:
+        !formData.cover_url || formData.cover_url.trim() === ""
+          ? "https://bookshow.blurb.com/bookshow/cache/P11360640/md/cover_2.jpeg?access_key=675523b769268bce5b0b710b3d0e7841"
+          : formData.cover_url,
     };
-    onSubmit(formData);
+    onSubmit(finalData);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div className="modal-overlay">
+      <div className="modal">
         <h2>{isEdit ? "Edit Book" : "Add New Book"}</h2>
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className="modal-form">
           <input
             name="title"
             value={formData.title}
@@ -46,12 +47,13 @@ function BookModal({ isOpen, onClose, onSubmit, isEdit, formData, setFormData })
             required
             type="number"
           />
-          <input
-            name="isbn"
-            value={formData.isbn}
+          <textarea
+            name="description"
+            value={formData.description}
             onChange={handleChange}
-            placeholder="ISBN"
-            required
+            placeholder="description"
+            rows={2}
+            className="modal-textarea"
           />
           <input
             name="cover_url"
@@ -66,7 +68,7 @@ function BookModal({ isOpen, onClose, onSubmit, isEdit, formData, setFormData })
             placeholder="PDF URL"
           />
 
-          <div style={styles.buttons}>
+          <div className="modal-buttons">
             <button type="submit">Save</button>
             <button type="button" onClick={onClose}>
               Cancel
@@ -77,36 +79,5 @@ function BookModal({ isOpen, onClose, onSubmit, isEdit, formData, setFormData })
     </div>
   );
 }
-
-const styles = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modal: {
-    background: "white",
-    padding: 20,
-    borderRadius: 10,
-    maxWidth: "500px",
-    width: "100%",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  buttons: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "10px",
-  },
-};
 
 export default BookModal;

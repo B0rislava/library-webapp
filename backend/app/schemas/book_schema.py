@@ -6,7 +6,7 @@ class BookCreate(BaseModel):
     title: str
     author: str
     year: int
-    isbn: str
+    description: str
     cover_url: Optional[str] = None
     pdf_url: Optional[str] = None
 

@@ -1,0 +1,22 @@
+.errorState {
+  text-align: center;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.errorIcon {
+  width: 48px;
+  height: 48px;
+  color: #d32f2f;
+}
+
+.errorText {
+  margin: 0;
+  font-size: 16px;
+  color: #d32f2f;
+  max-width: 400px;
+}

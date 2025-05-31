@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { authFetch } from "../utils/authFetch";
-import BookModal from "../utils/BookModal";
+import BookModal from "../modals/BookModal/BookModal";
+import NotificationModal from "../modals/NotificationModal/NotificationModal";
+import LoadingState from "../components/common/LoadingState/LoadingState"
+import ErrorState from "../components/common/ErrorState/ErrorState"
 import { useNavigate } from "react-router-dom";
-
-
 
 function BooksPage() {
   const [books, setBooks] = useState([]);
@@ -11,32 +12,51 @@ function BooksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("add"); // 'add' or 'edit'
+  const [modalMode, setModalMode] = useState("add");
   const [selectedBook, setSelectedBook] = useState(null);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     author: "",
     year: "",
-    isbn: "",
+    description: "",
     cover_url: "",
   });
 
   const [query, setQuery] = useState("");
   const debounceTimeout = useRef(null);
+  const searchInputRef = useRef(null);
+
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    isError: false,
+  });
+
+  function showNotification(message, isError = false) {
+    setNotification({ open: true, message, isError });
+  }
+
+  function closeNotification() {
+    setNotification({ ...notification, open: false });
+  }
 
   useEffect(() => {
     async function fetchBooks() {
       try {
-        const resBooks = await authFetch("http://127.0.0.1:8003/books/");
-        const resUser = await authFetch("http://127.0.0.1:8003/users/me");
+        const [resBooks, resUser] = await Promise.all([
+          authFetch("http://127.0.0.1:8003/books/"),
+          authFetch("http://127.0.0.1:8003/users/me")
+        ]);
 
         if (!resBooks.ok || !resUser.ok) {
           throw new Error("Failed to fetch data");
         }
 
-        const booksData = await resBooks.json();
-        const userData = await resUser.json();
+        const [booksData, userData] = await Promise.all([
+          resBooks.json(),
+          resUser.json()
+        ]);
 
         setBooks(booksData);
         setUserRole(userData.role);
@@ -51,13 +71,13 @@ function BooksPage() {
   }, []);
 
   useEffect(() => {
-  //if theres a timeout already - clear it
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
-    //make new timeout after 500ms
+
     debounceTimeout.current = setTimeout(() => {
       handleSearch(query);
+      searchInputRef.current?.focus();
     }, 500);
 
     return () => clearTimeout(debounceTimeout.current);
@@ -76,7 +96,9 @@ function BooksPage() {
         return;
       }
 
-      const response = await authFetch(`http://127.0.0.1:8003/books?search=${encodeURIComponent(searchQuery)}`);
+      const response = await authFetch(
+        `http://127.0.0.1:8003/books?search=${encodeURIComponent(searchQuery)}`
+      );
       if (!response.ok) throw new Error("Failed to search books");
 
       const data = await response.json();
@@ -112,7 +134,7 @@ function BooksPage() {
       }
 
       const updatedBook = await response.json();
-      alert(modalMode === "edit" ? "Book updated!" : "Book added!");
+      showNotification(modalMode === "edit" ? "Book updated!" : "Book added!");
 
       if (modalMode === "edit") {
         setBooks((prevBooks) =>
@@ -128,31 +150,35 @@ function BooksPage() {
         title: "",
         author: "",
         year: "",
-        isbn: "",
+        cover_url: "",
+        description: "",
       });
     } catch (err) {
-      alert("Error: " + err.message);
+      showNotification("Error: " + err.message, true);
     }
   }
 
   async function handleAddToLibrary(bookId) {
     try {
-      const response = await authFetch(`http://127.0.0.1:8003/books/user-books/${bookId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: null,
-      });
+      const response = await authFetch(
+        `http://127.0.0.1:8003/books/user-books/${bookId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: null,
+        }
+      );
 
       if (response.ok) {
-        alert("Book added to your library!");
+        showNotification("Book added to your library!");
       } else if (response.status === 400) {
-        alert("This book is already in your library.");
+        showNotification("This book is already in your library.", true);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Error adding book");
       }
     } catch (err) {
-      alert("Error: " + err.message);
+      showNotification("Error: " + err.message, true);
     }
   }
 
@@ -162,8 +188,9 @@ function BooksPage() {
       title: book.title,
       author: book.author,
       year: book.year,
-      isbn: book.isbn,
       cover_url: book.cover_url || "",
+      description: book.description,
+      pdf_url: book.pdf_url
     });
     setModalMode("edit");
     setModalOpen(true);
@@ -175,7 +202,8 @@ function BooksPage() {
       title: "",
       author: "",
       year: "",
-      isbn: "",
+      description: "",
+      cover_url: "",
     });
     setModalMode("add");
     setModalOpen(true);
@@ -186,72 +214,70 @@ function BooksPage() {
     setSelectedBook(null);
   }
 
-  if (loading) return <p>Loading books...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorState error={error} />;
+
 
   return (
-    <div style={{ maxWidth: "600px", margin: "auto", padding: "20px" }}>
-      <h2>Books</h2>
+    <div className="books-container">
+      <div className="books-header">
+        <h2>Books Collection</h2>
 
-      <div style={{ marginBottom: "20px" }}>
-        <input
-          type="text"
-          placeholder="Search by title or author"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ marginRight: "10px" }}
-        />
+        <div className="controls">
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search by title or author..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="search-input"
+          />
+
+          {userRole === "librarian" && (
+            <button
+              onClick={handleAddNewBook}
+              className="add-btn"
+            >
+              + Add New Book
+            </button>
+          )}
+        </div>
       </div>
 
-      {userRole === "librarian" && (
-        <button onClick={handleAddNewBook} style={{ marginBottom: "20px" }}>
-          + Add New Book
-        </button>
-      )}
-
       {books.length === 0 ? (
-        <p>No books found.</p>
+        <div className="empty-state">
+          <p>No books found. {userRole === "librarian" && "Try adding a new book!"}</p>
+        </div>
       ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+        <div className="books-grid">
           {books.map((book) => (
             <div
               key={book.id}
-              style={{
-                width: "150px",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                padding: "10px",
-                textAlign: "center",
-                boxShadow: "2px 2px 6px rgba(0,0,0,0.1)",
-              }}
+              className="book-card"
             >
               <img
-                src={book.cover_url || "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"}
+                src={book.cover_url || "https://via.placeholder.com/150x200?text=No+Cover"}
                 alt={book.title}
-                style={{ width: "120px", height: "160px", objectFit: "cover", marginBottom: "10px" }}
+                className="book-cover"
                 onClick={() => navigate(`/books/${book.id}`)}
               />
-              <div style={{ fontWeight: "bold", fontSize: "16px", marginBottom: "5px" }}>
-                {book.title}
+              <div className="book-details">
+                <h3 className="book-title">{book.title}</h3>
+                <p className="book-author">{book.author}</p>
+                <p className="book-year">{book.year}</p>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#555" }}>
-                <span>{book.author}</span>
-                <span>{book.year}</span>
-              </div>
-              <div style={{ marginTop: "10px" }}>
-                {userRole === "librarian" ? (
-                  <button onClick={() => handleEdit(book)}>Edit</button>
-                ) : (
-                  <button onClick={() => handleAddToLibrary(book.id)}>Add</button>
-                )}
-              </div>
+
+              <button
+                onClick={() => userRole === "librarian" ? handleEdit(book) : handleAddToLibrary(book.id)}
+                className={`action-btn ${userRole === "librarian" ? 'edit-btn' : 'add-btn'}`}
+              >
+                {userRole === "librarian" ? "Edit" : "Add to Library"}
+              </button>
             </div>
           ))}
         </div>
-
       )}
 
-      {/* Book Modal */}
       <BookModal
         isOpen={modalOpen}
         onClose={handleCloseModal}
@@ -261,6 +287,215 @@ function BooksPage() {
         formData={formData}
         setFormData={setFormData}
       />
+
+      <NotificationModal
+        isOpen={notification.open}
+        onClose={closeNotification}
+        message={notification.message}
+        isError={notification.isError}
+      />
+
+      <style jsx>{`
+        .books-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem;
+          min-height: calc(100vh - 4rem);
+        }
+
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 300px;
+          gap: 1rem;
+        }
+
+        .loading-spinner {
+          width: 50px;
+          height: 50px;
+          border: 5px solid rgba(106, 48, 147, 0.2);
+          border-radius: 50%;
+          border-top: 5px solid #6a3093;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+          text-align: center;
+          padding: 2rem;
+          color: #e53e3e;
+          font-size: 1.2rem;
+        }
+
+        .books-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+        }
+
+        .books-header h2 {
+          color: #5a3d7a;
+          margin: 0;
+          font-size: 1.8rem;
+        }
+
+        .controls {
+          display: flex;
+          gap: 1.5rem;
+          align-items: center;
+        }
+
+        .search-input {
+          padding: 0.8rem 1.2rem;
+          border: 1px solid #d8b5ff;
+          border-radius: 12px;
+          min-width: 250px;
+          font-size: 1rem;
+          transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+          border-color: #a044ff;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+        }
+
+        .add-btn {
+          padding: 0.8rem 1.5rem;
+          background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 20px rgba(106, 48, 147, 0.35);
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 3rem;
+          color: #7a5c9a;
+          font-size: 1.1rem;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .books-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 2rem;
+        }
+
+        .book-card {
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .book-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .book-cover {
+          width: 100%;
+          height: 300px;
+          object-fit: cover;
+          cursor: pointer;
+        }
+
+        .book-details {
+          padding: 1.2rem;
+          flex-grow: 1;
+        }
+
+        .book-title {
+          margin: 0 0 0.5rem 0;
+          font-size: 1.1rem;
+          color: #5a3d7a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .book-author {
+          margin: 0 0 0.3rem 0;
+          font-size: 0.95rem;
+          color: #7a5c9a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .book-year {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #9e8fb5;
+        }
+
+        .action-btn {
+          margin: 0 1.2rem 1.2rem;
+          padding: 0.7rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.95rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .edit-btn {
+          background: linear-gradient(135deg, #a044ff 0%, #6a3093 100%);
+          color: white;
+        }
+
+        .add-btn {
+          background: linear-gradient(135deg, #ff9e6a 0%, #ff7e33 100%);
+          color: white;
+        }
+
+        .action-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        @media (max-width: 768px) {
+          .books-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .controls {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .search-input {
+            width: 100%;
+            min-width: auto;
+          }
+        }
+      `}</style>
     </div>
   );
 }

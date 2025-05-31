@@ -1,0 +1,85 @@
+.notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.notification-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease;
+}
+
+.notification-modal.success {
+  border-top: 4px solid #28a745;
+}
+
+.notification-modal.error {
+  border-top: 4px solid #dc3545;
+}
+
+.notification-message {
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.notification-modal.success .notification-message {
+  color: #28a745;
+}
+
+.notification-modal.error .notification-message {
+  color: #dc3545;
+}
+
+.notification-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.success-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.success-btn:hover {
+  background-color: #218838;
+}
+
+.error-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.error-btn:hover {
+  background-color: #c82333;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
