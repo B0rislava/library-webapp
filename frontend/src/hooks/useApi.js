@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 export const useApi = () => {
   const authFetch = async (url, options = {}) => {
     const token = localStorage.getItem("accessToken");
@@ -14,12 +12,21 @@ export const useApi = () => {
       headers,
     });
 
+    if (response.status === 204) {
+      return;
+    }
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || "Request failed");
     }
 
-    return response.json();
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return response.json();
+    }
+
+    return response.text();
   };
 
   return { authFetch };
