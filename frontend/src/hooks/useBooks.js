@@ -10,7 +10,7 @@ export const useBooks = () => {
   const fetchBooks = useCallback(async (searchQuery = "") => {
     setLoading(true);
     try {
-      const url = searchQuery ? `/books?search=${searchQuery}` : "/books/";
+      const url = searchQuery ? `/books/?search=${searchQuery}` : "/books/";
       const data = await authFetch(url);
       setBooks(data);
     } catch (err) {
@@ -18,11 +18,11 @@ export const useBooks = () => {
     } finally {
       setLoading(false);
     }
-  }, [authFetch]); // authFetch as dependency
+  }, [authFetch]);
 
   useEffect(() => {
     fetchBooks();
-  }, []); // Empty dependency array is safe now
+  }, []);
 
   return { books, loading, error, fetchBooks };
 };

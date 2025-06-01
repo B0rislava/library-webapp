@@ -1,14 +1,23 @@
-import React from 'react';
-import { useState } from "react";
-import { useUser } from '../hooks/useUser';
-import { useUserBooks } from '../hooks/useUserBooks';
-import { useProfileActions } from '../hooks/useProfileActions';
-import { useNotification } from '../hooks/useNotification';
-import { useForm } from '../hooks/useForm';
-import { FiEdit2, FiLogOut, FiTrash2, FiBook, FiUser, FiX, FiCheck } from 'react-icons/fi';
-import Modal from '../modals/ConfirmationModal/ConfirmationModal';
-import NotificationModal from '../modals/NotificationModal/NotificationModal';
-import '../styles/ProfilePage.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../hooks/useUser";
+import { useUserBooks } from "../hooks/useUserBooks";
+import { useProfileActions } from "../hooks/useProfileActions";
+import { useNotification } from "../hooks/useNotification";
+import { useForm } from "../hooks/useForm";
+import {
+  FiEdit2,
+  FiLogOut,
+  FiTrash2,
+  FiBook,
+  FiUser,
+  FiX,
+  FiCheck,
+} from "react-icons/fi";
+import Modal from "../modals/ConfirmationModal/ConfirmationModal";
+import LoadingState from "../components/common/LoadingState/LoadingState";
+import NotificationModal from "../modals/NotificationModal/NotificationModal";
+import "../styles/ProfilePage.css";
 
 function ProfilePage() {
   // Hooks for data management
@@ -20,15 +29,17 @@ function ProfilePage() {
 
   // Local state
   const [editing, setEditing] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState("All");
   const [bookToDelete, setBookToDelete] = useState(null);
   const [showProfileDeleteModal, setShowProfileDeleteModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const navigate = useNavigate();
 
   // Form handling
   const { values, handleChange } = useForm({
-    name: user?.name || '',
-    email: user?.email || '',
-    password: ''
+    name: user?.name || "",
+    email: user?.email || "",
+    password: "",
   });
 
   const handleEditSubmit = async (e) => {
@@ -36,7 +47,7 @@ function ProfilePage() {
     try {
       await updateUser(values);
       setEditing(false);
-      showNotification('Profile updated successfully!');
+      showNotification("Profile updated successfully!");
     } catch (error) {
       showNotification(error.message, true);
     }
@@ -45,9 +56,8 @@ function ProfilePage() {
   const handleStatusChange = async (bookId, newStatus) => {
     try {
       await updateStatus(bookId, newStatus);
-      showNotification('Status updated!');
     } catch (error) {
-      showNotification('Failed to update status', true);
+      showNotification("Failed to update status", true);
     }
   };
 
@@ -55,7 +65,7 @@ function ProfilePage() {
     try {
       await updateProgress(bookId, currentPage, totalPages);
     } catch (error) {
-      showNotification('Failed to update progress', true);
+      showNotification("Failed to update progress", true);
     }
   };
 
@@ -63,27 +73,23 @@ function ProfilePage() {
     try {
       await removeBook(bookId);
       setBookToDelete(null);
-      showNotification('Book removed from your collection');
+      showNotification("Book removed from your collection");
     } catch (error) {
-      showNotification('Failed to remove book', true);
+      showNotification("Failed to remove book", true);
     }
   };
 
-  if (userLoading || booksLoading) {
+  if (userLoading || booksLoading) return <LoadingState />;
+  if (userError || booksError) {
     return (
-      <div className="profile-loading-container">
-        <div className="profile-loading-spinner"></div>
-        <p>Loading your profile...</p>
-      </div>
+      <div className="profile-error-message">{userError || booksError}</div>
     );
   }
 
-  if (userError || booksError) {
-    return <div className="profile-error-message">{userError || booksError}</div>;
-  }
-
   if (!user) {
-    return <div className="profile-error-message">Failed to load user profile</div>;
+    return (
+      <div className="profile-error-message">Failed to load user profile</div>
+    );
   }
 
   return (
@@ -101,7 +107,10 @@ function ProfilePage() {
               <button onClick={() => setEditing(true)} className="profile-btn-icon profile-edit-btn">
                 <FiEdit2 size={20} />
               </button>
-              <button onClick={handleLogout} className="profile-btn-icon profile-logout-btn">
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="profile-btn-icon profile-logout-btn"
+                >
                 <FiLogOut size={20} />
               </button>
               <button onClick={() => setShowProfileDeleteModal(true)} className="profile-btn-icon profile-delete-btn">
@@ -125,133 +134,164 @@ function ProfilePage() {
               </div>
             </div>
 
-            {/* Books Collection Section */}
-            <div className="profile-section-divider">
-              <FiBook size={20} />
-              <h3>Your Book Collection</h3>
-            </div>
-
-            <div className="profile-filter-control">
-              <label>Filter by Status:</label>
-              <div className="profile-status-tabs">
-                {['All', 'Not started', 'Started', 'Finished'].map((status) => (
-                  <button
-                    key={status}
-                    className={`profile-status-tab ${selectedStatus === status ? 'active' : ''}`}
-                    onClick={() => setSelectedStatus(status)}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Books List */}
-            {userBooks.filter(b => selectedStatus === 'All' || b.status === selectedStatus).length === 0 ? (
-              <div className="profile-empty-state">
-                <div className="profile-empty-icon">
-                  <FiBook size={48} />
-                </div>
-                <p>Your bookshelf is empty</p>
-                <button className="profile-btn-primary" onClick={() => window.location.href = '/books'}>
-                  Browse Books
+            {user?.role === "librarian" ? (
+              <div className="profile-section-divider">
+                <FiBook size={20} />
+                <button className="placeholder-btn" disabled>
+                  Placeholder Button
                 </button>
               </div>
             ) : (
-              <div className="profile-books-grid">
-                {userBooks
-                  .filter(book => selectedStatus === 'All' || book.status === selectedStatus)
-                  .map(book => (
-                    <div key={book.book_id} className="profile-book-card">
-                      {/* Book Cover */}
-                      <div className="profile-book-cover">
-                        {book.cover_image ? (
-                          <img src={book.cover_image} alt={book.title} />
-                        ) : (
-                          <div className="profile-cover-placeholder">
-                            <FiBook size={32} />
-                          </div>
-                        )}
-                      </div>
+              <>
+                <div className="profile-section-divider">
+                  <FiBook size={20} />
+                  <h3>Your Book Collection</h3>
+                </div>
 
-                      {/* Book Details */}
-                      <div className="profile-book-details">
-                        <h4 className="profile-book-title">{book.title}</h4>
-                        <p className="profile-book-author">{book.author}</p>
-                        <p className="profile-book-year">{book.year}</p>
+                <div className="profile-filter-control">
+                  <label>Filter by Status:</label>
+                  <div className="profile-status-tabs">
+                    {["All", "Not started", "Started", "Finished"].map(
+                      (status) => (
+                        <button
+                          key={status}
+                          className={`profile-status-tab ${selectedStatus === status ? "active" : ""}`}
+                          onClick={() => setSelectedStatus(status)}
+                        >
+                          {status}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
 
-                        {/* Progress Tracking */}
-                        <div className="profile-progress-container">
-                          <div className="profile-page-input-group">
-                            <div className="profile-input-row">
-                              <label>Current page:</label>
-                              <input
-                                type="number"
-                                min="0"
-                                value={book.current_page || 0}
-                                onChange={(e) => handlePageChange(
-                                  book.book_id,
-                                  e.target.value,
-                                  book.total_pages || 0
-                                )}
-                                className="profile-page-input"
-                              />
-                            </div>
-
-                            <div className="profile-input-row">
-                              <label>Total pages:</label>
-                              <input
-                                type="number"
-                                min="1"
-                                value={book.total_pages || ''}
-                                onChange={(e) => handlePageChange(
-                                  book.book_id,
-                                  book.current_page || 0,
-                                  e.target.value
-                                )}
-                                className="profile-page-input"
-                                placeholder="Enter total"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div className="profile-progress-display">
-                            <div className="profile-progress-bar">
-                              <div
-                                className="profile-progress-fill"
-                                style={{ width: `${book.progress}%` }}
-                              ></div>
-                            </div>
-                            <span className="profile-progress-text">
-                              {book.progress}% {book.status === 'Finished' && '(Completed)'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Book Controls */}
-                        <div className="profile-book-controls">
-                          <select
-                            value={book.status}
-                            onChange={(e) => handleStatusChange(book.book_id, e.target.value)}
-                            className="profile-status-select"
-                          >
-                            <option value="Not started">Not started</option>
-                            <option value="Started">Started</option>
-                            <option value="Finished">Finished</option>
-                          </select>
-
-                          <button
-                            className="profile-btn-remove"
-                            onClick={() => setBookToDelete(book.book_id)}
-                          >
-                            <FiTrash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
+                {userBooks.filter(
+                  (b) =>
+                    selectedStatus === "All" || b.status === selectedStatus,
+                ).length === 0 ? (
+                  <div className="profile-empty-state">
+                    <div className="profile-empty-icon">
+                      <FiBook size={48} />
                     </div>
-                  ))}
-              </div>
+                    <p>Your bookshelf is empty</p>
+                    <button
+                      className="profile-btn-primary"
+                      onClick={() => navigate("/books")}
+                    >
+                      Browse Books
+                    </button>
+                  </div>
+                ) : (
+                  <div className="profile-books-grid">
+                    {userBooks
+                      .filter(
+                        (book) =>
+                          selectedStatus === "All" ||
+                          book.status === selectedStatus,
+                      )
+                      .map((book) => (
+                        <div key={book.book_id} className="profile-book-card">
+                          {/* Book Cover */}
+                          <div className="profile-book-cover">
+                            {book.cover_image ? (
+                              <img src={book.cover_image} alt={book.title} />
+                            ) : (
+                              <div className="profile-cover-placeholder">
+                                <FiBook size={32} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Book Details */}
+                          <div className="profile-book-details">
+                            <h4 className="profile-book-title">{book.title}</h4>
+                            <p className="profile-book-author">{book.author}</p>
+                            <p className="profile-book-year">{book.year}</p>
+
+                            {/* Progress Tracking */}
+                            <div className="profile-progress-container">
+                              <div className="profile-page-input-group">
+                                <div className="profile-input-row">
+                                  <label>Current page:</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={book.current_page || 0}
+                                    onChange={(e) =>
+                                      handlePageChange(
+                                        book.book_id,
+                                        e.target.value,
+                                        book.total_pages || 0,
+                                      )
+                                    }
+                                    className="profile-page-input"
+                                  />
+                                </div>
+
+                                <div className="profile-input-row">
+                                  <label>Total pages:</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={book.total_pages || ""}
+                                    onChange={(e) =>
+                                      handlePageChange(
+                                        book.book_id,
+                                        book.current_page || 0,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="profile-page-input"
+                                    placeholder="Enter total"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Progress Bar */}
+                              <div className="profile-progress-display">
+                                <div className="profile-progress-bar">
+                                  <div
+                                    className="profile-progress-fill"
+                                    style={{ width: `${book.progress}%` }}
+                                  ></div>
+                                </div>
+                                <span className="profile-progress-text">
+                                  {book.progress}%{" "}
+                                  {book.status === "Finished" && "(Completed)"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Book Controls */}
+                            <div className="profile-book-controls">
+                              <select
+                                value={book.status}
+                                onChange={(e) =>
+                                  handleStatusChange(
+                                    book.book_id,
+                                    e.target.value,
+                                  )
+                                }
+                                className="profile-status-select"
+                              >
+                                <option value="Not started">Not started</option>
+                                <option value="Started">Started</option>
+                                <option value="Finished">Finished</option>
+                              </select>
+
+                              <button
+                                className="profile-btn-remove"
+                                onClick={() => setBookToDelete(book.book_id)}
+                              >
+                                <FiTrash2 size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </>
             )}
           </>
         ) : (
@@ -294,7 +334,10 @@ function ProfilePage() {
             </div>
 
             <div className="profile-form-actions">
-              <button type="submit" className="profile-btn-primary profile-save-btn">
+              <button
+                type="submit"
+                className="profile-btn-primary profile-save-btn"
+              >
                 <FiCheck size={18} />
                 Save Changes
               </button>
@@ -318,7 +361,19 @@ function ProfilePage() {
         onConfirm={handleDeleteProfile}
         title="Delete Profile"
       >
-        <p>Are you sure you want to delete your profile? This action cannot be undone.</p>
+        <p>
+          Are you sure you want to delete your profile? This action cannot be
+          undone.
+        </p>
+      </Modal>
+
+      <Modal
+        show={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Sign Out"
+      >
+          <p>Are you sure you want to sign out?</p>
       </Modal>
 
       <Modal

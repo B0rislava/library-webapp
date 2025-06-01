@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams } from "react-router-dom";
-import { getBookById } from "../services/BookService";
 import LoadingState from "../components/common/LoadingState/LoadingState";
 import ErrorState from "../components/common/ErrorState/ErrorState";
+import { useBook } from "../hooks/useBook";
 import "../styles/BookDetail.css";
 
 const BookCover = ({ coverUrl, title }) => (
@@ -41,27 +41,9 @@ const BookDescription = ({ description }) => (
 
 function BookDetail() {
   const { id } = useParams();
-  const [book, setBook] = useState(null);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const { book, loading, error } = useBook(id);
 
-  useEffect(() => {
-    const fetchBook = async () => {
-      try {
-        setIsLoading(true);
-        const bookData = await getBookById(id);
-        setBook(bookData);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBook();
-  }, [id]);
-
-  if (isLoading) return <LoadingState />;
+  if (loading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
   if (!book) return <ErrorState error="Book not found" />;
 

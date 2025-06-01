@@ -74,6 +74,17 @@ export const useUserBooks = () => {
     }
   };
 
+  const addBook = async (bookId) => {
+    try {
+      await authFetch(`/books/user-books/${bookId}`, {
+        method: 'POST',
+      });
+      await fetchUserBooks();
+    } catch (err) {
+      throw new Error(err.message);
+    }
+  };
+
   useEffect(() => {
     fetchUserBooks();
   }, []);
@@ -85,6 +96,7 @@ export const useUserBooks = () => {
     fetchUserBooks,
     updateStatus,
     updateProgress,
-    removeBook
+    removeBook,
+    addBook,
   };
 };

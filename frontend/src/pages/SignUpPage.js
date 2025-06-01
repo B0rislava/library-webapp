@@ -8,9 +8,7 @@ import "../styles/SignUpPage.css";
 function SignupPage() {
   const navigate = useNavigate();
   const { signup, error: authError, loading } = useAuth();
-
   const { values, handleChange, resetForm } = useForm({name: "", email: "", password: "", confirmPassword: "", role: "user",});
-
   const [validationError, setValidationError] = useState("");
 
   const handleSubmit = async (e) => {

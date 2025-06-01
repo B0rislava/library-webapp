@@ -4,44 +4,32 @@ import BookModal from "../modals/BookModal/BookModal";
 import NotificationModal from "../modals/NotificationModal/NotificationModal";
 import LoadingState from "../components/common/LoadingState/LoadingState";
 import ErrorState from "../components/common/ErrorState/ErrorState";
-import { useApi } from "../hooks/useApi";
-import { useNotification } from "../hooks/useNotification";
+import { useUser } from "../hooks/useUser";
 import { useBooks } from "../hooks/useBooks";
+import { useUserBooks } from "../hooks/useUserBooks";
+import { useNotification } from "../hooks/useNotification";
+import { useApi } from "../hooks/useApi";
 import "../styles/BooksPage.css";
 
 function BooksPage() {
   const navigate = useNavigate();
-  const { authFetch } = useApi();
-  const { notification, showNotification, closeNotification } = useNotification();
+  const { user, loading: userLoading } = useUser();
   const { books, loading, error, fetchBooks } = useBooks();
+  const { addBook } = useUserBooks();
+  const { notification, showNotification, closeNotification } = useNotification();
+  const { authFetch } = useApi();
 
-  const [userRole, setUserRole] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add");
   const [selectedBook, setSelectedBook] = useState(null);
-  const [formData, setFormData] = useState({title: "", author: "", year: "", description: "", cover_url: "", pdf_url: ""});
+  const [formData, setFormData] = useState({ title: "", author: "", year: "", description: "", cover_url: "", pdf_url: "" });
 
   const [query, setQuery] = useState("");
   const debounceTimeout = useRef(null);
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const userData = await authFetch("/users/me");
-        setUserRole(userData.role);
-      } catch (err) {
-        showNotification("Failed to fetch user role", true);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
-
-  useEffect(() => {
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
-    }
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
     debounceTimeout.current = setTimeout(() => {
       fetchBooks(query);
@@ -54,18 +42,16 @@ function BooksPage() {
   async function handleSubmitBook(data) {
     try {
       const method = modalMode === "edit" ? "PUT" : "POST";
-      const url = modalMode === "edit"
-        ? `/books/${selectedBook.id}`
-        : "/books/";
+      const url = modalMode === "edit" ? `/books/${selectedBook.id}` : "/books/";
 
-      const updatedBook = await authFetch(url, {
+
+      await authFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
       showNotification(modalMode === "edit" ? "Book updated!" : "Book added!");
-      fetchBooks(); // Refresh the book list
+      fetchBooks();
       handleCloseModal();
     } catch (err) {
       showNotification("Error: " + err.message, true);
@@ -74,7 +60,7 @@ function BooksPage() {
 
   async function handleAddToLibrary(bookId) {
     try {
-      await authFetch(`/books/user-books/${bookId}`, { method: "POST" });
+      await addBook(bookId);
       showNotification("Book added to your library!");
     } catch (err) {
       const message = err.message.includes("400")
@@ -92,7 +78,7 @@ function BooksPage() {
       year: book.year,
       cover_url: book.cover_url || "",
       description: book.description,
-      pdf_url: book.pdf_url
+      pdf_url: book.pdf_url,
     });
     setModalMode("edit");
     setModalOpen(true);
@@ -100,14 +86,7 @@ function BooksPage() {
 
   function handleAddNewBook() {
     setSelectedBook(null);
-    setFormData({
-      title: "",
-      author: "",
-      year: "",
-      description: "",
-      cover_url: "",
-      pdf_url: ""
-    });
+    setFormData({ title: "", author: "", year: "", description: "", cover_url: "", pdf_url: "" });
     setModalMode("add");
     setModalOpen(true);
   }
@@ -117,14 +96,13 @@ function BooksPage() {
     setSelectedBook(null);
   }
 
-  if (loading) return <LoadingState />;
+  if (loading || userLoading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="books-container">
       <div className="books-header">
         <h2>Books Collection</h2>
-
         <div className="controls">
           <input
             ref={searchInputRef}
@@ -134,8 +112,7 @@ function BooksPage() {
             onChange={(e) => setQuery(e.target.value)}
             className="search-input"
           />
-
-          {userRole === "librarian" && (
+          {user?.role === "librarian" && (
             <button onClick={handleAddNewBook} className="add-btn">
               + Add New Book
             </button>
@@ -145,7 +122,7 @@ function BooksPage() {
 
       {books.length === 0 ? (
         <div className="empty-state">
-          <p>No books found. {userRole === "librarian" && "Try adding a new book!"}</p>
+          <p>No books found. {user?.role === "librarian" && "Try adding a new book!"}</p>
         </div>
       ) : (
         <div className="books-grid">
@@ -164,12 +141,10 @@ function BooksPage() {
               </div>
 
               <button
-                onClick={() => userRole === "librarian"
-                  ? handleEdit(book)
-                  : handleAddToLibrary(book.id)}
-                className={`action-btn ${userRole === "librarian" ? 'edit-btn' : 'add-btn'}`}
+                onClick={() => user?.role === "librarian" ? handleEdit(book) : handleAddToLibrary(book.id)}
+                className={`action-btn ${user?.role === "librarian" ? "edit-btn" : "add-btn"}`}
               >
-                {userRole === "librarian" ? "Edit" : "Add to Library"}
+                {user?.role === "librarian" ? "Edit" : "Add to Library"}
               </button>
             </div>
           ))}
