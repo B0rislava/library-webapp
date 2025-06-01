@@ -13,6 +13,10 @@ import {
   FiUser,
   FiX,
   FiCheck,
+  FiPlus,
+  FiTrendingUp,
+  FiClock,
+  FiUsers
 } from "react-icons/fi";
 import Modal from "../modals/ConfirmationModal/ConfirmationModal";
 import LoadingState from "../components/common/LoadingState/LoadingState";
@@ -132,14 +136,82 @@ function ProfilePage() {
                 <span className="profile-info-label">Email</span>
                 <span className="profile-info-value">{user.email}</span>
               </div>
+              {user?.role === "librarian" && (
+                <div className="profile-info-item">
+                  <span className="profile-info-label">Role</span>
+                  <span className="profile-info-value">Librarian</span>
+                </div>
+              )}
             </div>
 
             {user?.role === "librarian" ? (
-              <div className="profile-section-divider">
-                <FiBook size={20} />
-                <button className="placeholder-btn" disabled>
-                  Placeholder Button
-                </button>
+              <div className="librarian-dashboard">
+                {/* Statistics Cards */}
+                <div className="stats-cards">
+                  <div className="stat-card">
+                    <h4>Total Books</h4>
+                    <p className="stat-value">1,245</p>
+                    <p className="stat-description">in library</p>
+                  </div>
+
+                  <div className="stat-card">
+                    <h4>Registered Users</h4>
+                    <p className="stat-value">586</p>
+                    <p className="stat-description">readers</p>
+                  </div>
+
+                  <div className="stat-card">
+                    <h4>Active Loans</h4>
+                    <p className="stat-value">127</p>
+                    <p className="stat-description">this month</p>
+                  </div>
+                </div>
+
+                {/* Quick Action Buttons */}
+                <div className="librarian-actions">
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/books/add')}
+                  >
+                    <FiPlus size={24} />
+                    Add New Book
+                  </button>
+
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/popular-books')}
+                  >
+                    <FiTrendingUp size={24} />
+                    Most Popular Books
+                  </button>
+
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/book-requests')}
+                  >
+                    <FiClock size={24} />
+                    Book Requests
+                  </button>
+
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/user-management')}
+                  >
+                    <FiUsers size={24} />
+                    User Management
+                  </button>
+                </div>
+
+                {/* Recent Activity Section */}
+                <div className="recent-activity">
+                  <h3>Recent Activity</h3>
+                  <ul className="activity-list">
+                    <li>User "John Doe" returned "The Great Gatsby"</li>
+                    <li>New book "Atomic Habits" added to catalog</li>
+                    <li>5 new users registered this week</li>
+                    <li>User "Jane Smith" requested "Dune"</li>
+                  </ul>
+                </div>
               </div>
             ) : (
               <>
