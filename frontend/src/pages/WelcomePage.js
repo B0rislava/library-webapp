@@ -1,6 +1,44 @@
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import "../styles/WelcomePage.css";
+import { useUser } from "../hooks/useUser";
+
 
 function WelcomePage() {
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return <div className="welcome-container">Loading...</div>;
+  }
+
+  if (user) {
+    // Logged in user - show custom welcome
+    return (
+      <div className="welcome-container">
+        <div className="welcome-card">
+          <div className="header-section">
+            <div className="logo-circle">
+              <div className="book-icon">📚</div>
+            </div>
+            <h1 className="welcome-title">Welcome back, {user.name}!</h1>
+          </div>
+
+          <p className="welcome-subtitle">
+            Let's pick up where you left off.
+          </p>
+
+          <div className="button-group">
+            <Link to="/books" className="auth-link">
+              <button className="auth-btn primary-btn">
+                Go to My Library
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in - show standard welcome
   return (
     <div className="welcome-container">
       <div className="welcome-card">
@@ -28,138 +66,6 @@ function WelcomePage() {
           </Link>
         </div>
       </div>
-
-      <style jsx>{`
-        .welcome-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #e4d1ff 0%, #d8b5ff 100%);
-          padding: 2rem;
-          box-sizing: border-box;
-          overflow: hidden;
-        }
-
-        .welcome-card {
-          background: white;
-          border-radius: 24px;
-          padding: 3rem 2.5rem;
-          text-align: center;
-          max-width: 500px;
-          width: 100%;
-          box-shadow: 0 15px 50px rgba(90, 61, 122, 0.15);
-          animation: fadeInUp 0.6s ease-out;
-        }
-
-        .header-section {
-          margin-bottom: 2rem;
-        }
-
-        .logo-circle {
-          width: 100px;
-          height: 100px;
-          background: linear-gradient(135deg, #a044ff 0%, #6a3093 100%);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 1.5rem;
-        }
-
-        .book-icon {
-          font-size: 3.5rem;
-          color: white;
-        }
-
-        .welcome-title {
-          font-size: 2.2rem;
-          color: #5a3d7a;
-          margin: 0;
-          font-weight: 700;
-          line-height: 1.3;
-        }
-
-        .welcome-subtitle {
-          font-size: 1.1rem;
-          color: #7a5c9a;
-          line-height: 1.6;
-          margin-bottom: 2.5rem;
-        }
-
-        .button-group {
-          display: flex;
-          gap: 1.5rem;
-          justify-content: center;
-        }
-
-        .auth-btn {
-          padding: 1rem 2rem;
-          border: none;
-          border-radius: 12px;
-          font-size: 1.1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-width: 160px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .primary-btn {
-          background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
-          color: white;
-        }
-
-        .primary-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(106, 48, 147, 0.35);
-        }
-
-        .secondary-btn {
-          background: white;
-          color: #6a3093;
-          border: 2px solid #6a3093;
-        }
-
-        .secondary-btn:hover {
-          background: #f8f5ff;
-          transform: translateY(-3px);
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @media (max-width: 600px) {
-          .welcome-container {
-            padding: 1.5rem;
-          }
-
-          .welcome-card {
-            padding: 2.5rem 1.8rem;
-          }
-
-          .welcome-title {
-            font-size: 1.8rem;
-          }
-
-          .button-group {
-            flex-direction: column;
-            gap: 1rem;
-          }
-
-          .auth-btn {
-            width: 100%;
-          }
-        }
-      `}</style>
     </div>
   );
 }
