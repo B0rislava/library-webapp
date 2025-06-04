@@ -57,5 +57,7 @@ export const useAuth = () => {
     navigate("/");
   };
 
-  return { login, signup, logout, error, loading };
+  const isAuthenticated = !!localStorage.getItem("accessToken");
+
+  return { login, signup, logout, error, loading, isAuthenticated };
 };

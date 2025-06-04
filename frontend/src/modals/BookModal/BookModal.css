@@ -2,35 +2,132 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.3s ease;
 }
 
 .modal {
   background: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 500px;
+  border-radius: 12px;
   width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transform: translateY(0);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  max-height: 80vh; /* Ограничаване на максималната височина */
+  overflow-y: auto; /* Добавяне на скролбар при необходимост */
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+  color: white;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0 10px;
+  line-height: 1;
 }
 
 .modal-form {
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
 }
 
-.modal-textarea {
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.modal-form input,
+.modal-form textarea {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border 0.3s ease;
+}
+
+.modal-form input:focus,
+.modal-form textarea:focus {
+  border-color: #a044ff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(160, 68, 255, 0.1);
+}
+
+.modal-form textarea {
   resize: vertical;
-  padding: 8px;
+  min-height: 80px;
 }
 
 .modal-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 10px;
+}
+
+.cancel-btn {
+  padding: 10px 20px;
+  background: #f0f0f0;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #e0e0e0;
+}
+
+.submit-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(106, 48, 147, 0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
