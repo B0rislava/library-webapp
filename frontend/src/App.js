@@ -7,10 +7,13 @@ import ProfilePage from "./pages/ProfilePage";
 import Navbar from "./utils/Navbar";
 import PrivateRoute from "./utils/PrivateRoute";
 import BookDetail from "./pages/BookDetail";
+import { useAuth } from "./hooks/useAuth";
 
 function AppContent() {
   const location = useLocation();
-  const showNavbar = location.pathname !== "/" && localStorage.getItem("accessToken");
+  const { isAuthenticated } = useAuth();
+  const showNavbar = isAuthenticated;
+
 
   return (
     <>

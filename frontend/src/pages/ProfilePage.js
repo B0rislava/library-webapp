@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
+import { useUsers } from '../hooks/useUsers';
 import { useUserBooks } from "../hooks/useUserBooks";
 import { useProfileActions } from "../hooks/useProfileActions";
 import { useNotification } from "../hooks/useNotification";
@@ -21,15 +22,18 @@ import {
 import Modal from "../modals/ConfirmationModal/ConfirmationModal";
 import LoadingState from "../components/common/LoadingState/LoadingState";
 import NotificationModal from "../modals/NotificationModal/NotificationModal";
+import { useBooks } from "../hooks/useBooks";
 import "../styles/ProfilePage.css";
 
 function ProfilePage() {
   // Hooks for data management
   const { user, loading: userLoading, error: userError, updateUser } = useUser();
+  const { users, loading, error } = useUsers();
   const { books: userBooks, loading: booksLoading, error: booksError,
           updateStatus, updateProgress, removeBook } = useUserBooks();
   const { notification, showNotification, closeNotification } = useNotification();
   const { handleDeleteProfile, handleLogout } = useProfileActions();
+  const { books, loading: allBooksLoading } = useBooks();
 
   // Local state
   const [editing, setEditing] = useState(false);
@@ -83,7 +87,7 @@ function ProfilePage() {
     }
   };
 
-  if (userLoading || booksLoading) return <LoadingState />;
+  if (userLoading || (user?.role === 'librarian' ? allBooksLoading : booksLoading)) return <LoadingState />;
   if (userError || booksError) {
     return (
       <div className="profile-error-message">{userError || booksError}</div>
@@ -150,13 +154,17 @@ function ProfilePage() {
                 <div className="stats-cards">
                   <div className="stat-card">
                     <h4>Total Books</h4>
-                    <p className="stat-value">1,245</p>
+                    <p className="stat-value">
+                        {loading ? "Loading..." : books.length}
+                    </p>
                     <p className="stat-description">in library</p>
                   </div>
 
                   <div className="stat-card">
                     <h4>Registered Users</h4>
-                    <p className="stat-value">586</p>
+                    <p className="stat-value">
+                    {loading ? "Loading..." : users.length}
+                    </p>
                     <p className="stat-description">readers</p>
                   </div>
 
