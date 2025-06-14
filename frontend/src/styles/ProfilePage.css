@@ -179,6 +179,12 @@
   font-weight: 500;
 }
 
+.error-message {
+  color: #ff4444;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
 /* Section Divider */
 .profile-section-divider {
   display: flex;

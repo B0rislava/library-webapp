@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useUsers } from '../hooks/useUsers';
@@ -44,14 +44,28 @@ function ProfilePage() {
   const navigate = useNavigate();
 
   // Form handling
-  const { values, handleChange } = useForm({
+  const { values, handleChange, resetForm } = useForm({
     name: user?.name || "",
     email: user?.email || "",
     password: "",
   });
 
+  useEffect(() => {
+    if (user && editing && (values.name !== user.name || values.email !== user.email)) {
+      resetForm({
+        name: user.name || "",
+        email: user.email || "",
+        password: "",
+      });
+    }
+  }, [editing, user?.id]);
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    if (values.password && values.password.length < 8) {
+      showNotification("Password must be at least 8 characters", true);
+      return;
+    }
     try {
       await updateUser(values);
       setEditing(false);
@@ -382,7 +396,7 @@ function ProfilePage() {
               <input
                 type="text"
                 name="name"
-                value={values.name}
+                value={values.name || ''}
                 onChange={handleChange}
                 required
                 placeholder="Enter your full name"
@@ -410,7 +424,9 @@ function ProfilePage() {
                 onChange={handleChange}
                 placeholder="Leave blank to keep current"
               />
-              <div className="profile-form-note">Minimum 8 characters</div>
+              {values.password && values.password.length < 8 && (
+                <div className="error-message">Password must be at least 8 characters</div>
+              )}
             </div>
 
             <div className="profile-form-actions">
