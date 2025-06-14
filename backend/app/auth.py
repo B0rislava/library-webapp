@@ -106,23 +106,22 @@ def refresh_token(
 ):
     try:
         payload = jwt.decode(credentials.credentials, SECRET, algorithms=["HS256"])
-        email: str = payload.get("email")
-        if email is None:
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    user = db.query(DBUser).filter(DBUser.email == email).first()
+    user = db.query(DBUser).filter(DBUser.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
     # New access token
-    access_token = create_access_token({"email": user.email, "role": user.role})
+    access_token = create_access_token({"sub": str(user.id), "role": user.role})
     return {
         "access_token": access_token,
         "token_type": "bearer"
     }
-
 
 
 def create_access_token(data: dict):

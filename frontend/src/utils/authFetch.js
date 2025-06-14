@@ -33,5 +33,8 @@ export async function authFetch(url, options = {}) {
     }
   }
 
-  return response;
+  if (response.ok) {
+    return await response.json();
+  }
+  throw new Error(await response.text());
 }

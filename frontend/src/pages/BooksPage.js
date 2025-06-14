@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import BookModal from "../modals/BookModal/BookModal";
 import NotificationModal from "../modals/NotificationModal/NotificationModal";
+import ConfirmationModal from "../modals/ConfirmationModal/ConfirmationModal";
 import LoadingState from "../components/common/LoadingState/LoadingState";
 import ErrorState from "../components/common/ErrorState/ErrorState";
 import { useUser } from "../hooks/useUser";
@@ -14,7 +15,7 @@ import "../styles/BooksPage.css";
 function BooksPage() {
   const navigate = useNavigate();
   const { user, loading: userLoading } = useUser();
-  const { books, loading, error, fetchBooks } = useBooks();
+  const { books, loading, error, fetchBooks, deleteBook } = useBooks();
   const { addBook } = useUserBooks();
   const { notification, showNotification, closeNotification } = useNotification();
   const { authFetch } = useApi();
@@ -27,6 +28,9 @@ function BooksPage() {
   const [query, setQuery] = useState("");
   const debounceTimeout = useRef(null);
   const searchInputRef = useRef(null);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState(null);
 
   useEffect(() => {
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -44,7 +48,6 @@ function BooksPage() {
       const method = modalMode === "edit" ? "PUT" : "POST";
       const url = modalMode === "edit" ? `/books/${selectedBook.id}` : "/books/";
 
-
       await authFetch(url, {
         method,
         body: JSON.stringify(data),
@@ -55,6 +58,21 @@ function BooksPage() {
       handleCloseModal();
     } catch (err) {
       showNotification("Error: " + err.message, true);
+    }
+  }
+
+  async function confirmDeleteBook() {
+    try {
+      const success = await deleteBook(bookToDelete.id);
+      if (success) {
+        showNotification("Book deleted successfully!");
+        fetchBooks();
+      }
+    } catch (err) {
+      showNotification("Error: " + err.message, true);
+    } finally {
+      setShowConfirmModal(false);
+      setBookToDelete(null);
     }
   }
 
@@ -82,6 +100,11 @@ function BooksPage() {
     });
     setModalMode("edit");
     setModalOpen(true);
+  }
+
+  function handleDeleteClick(book) {
+    setBookToDelete(book);
+    setShowConfirmModal(true);
   }
 
   function handleAddNewBook() {
@@ -140,12 +163,31 @@ function BooksPage() {
                 <p className="book-year">{book.year}</p>
               </div>
 
-              <button
-                onClick={() => user?.role === "librarian" ? handleEdit(book) : handleAddToLibrary(book.id)}
-                className={`action-btn ${user?.role === "librarian" ? "edit-btn" : "add-btn"}`}
-              >
-                {user?.role === "librarian" ? "Edit" : "Add to Library"}
-              </button>
+              <div className="book-actions">
+                {user?.role === "librarian" ? (
+                  <>
+                    <button
+                      onClick={() => handleEdit(book)}
+                      className="action-btn edit-btn"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(book)}
+                      className="action-btn delete-btn"
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleAddToLibrary(book.id)}
+                    className="action-btn add-to-library-btn"
+                  >
+                    Add to Library
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -167,6 +209,15 @@ function BooksPage() {
         message={notification.message}
         isError={notification.isError}
       />
+
+      <ConfirmationModal
+        show={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmDeleteBook}
+        title="Delete Book"
+      >
+        Are you sure you want to delete this book?
+      </ConfirmationModal>
     </div>
   );
 }

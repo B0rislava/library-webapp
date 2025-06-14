@@ -171,3 +171,24 @@ def update_book(book_id: int, book: BookCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_book)
     return db_book
+
+
+@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_librarian)])
+def delete_book(
+        book_id: int,
+        db: Session = Depends(get_db)
+):
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    try:
+        db.query(UserBook).filter(UserBook.book_id == book_id).delete()
+
+        db.delete(book)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return

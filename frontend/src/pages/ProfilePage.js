@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
+import { useUsers } from '../hooks/useUsers';
 import { useUserBooks } from "../hooks/useUserBooks";
 import { useProfileActions } from "../hooks/useProfileActions";
 import { useNotification } from "../hooks/useNotification";
@@ -13,19 +14,26 @@ import {
   FiUser,
   FiX,
   FiCheck,
+  FiPlus,
+  FiTrendingUp,
+  FiClock,
+  FiUsers
 } from "react-icons/fi";
 import Modal from "../modals/ConfirmationModal/ConfirmationModal";
 import LoadingState from "../components/common/LoadingState/LoadingState";
 import NotificationModal from "../modals/NotificationModal/NotificationModal";
+import { useBooks } from "../hooks/useBooks";
 import "../styles/ProfilePage.css";
 
 function ProfilePage() {
   // Hooks for data management
   const { user, loading: userLoading, error: userError, updateUser } = useUser();
+  const { users, loading, error } = useUsers();
   const { books: userBooks, loading: booksLoading, error: booksError,
           updateStatus, updateProgress, removeBook } = useUserBooks();
   const { notification, showNotification, closeNotification } = useNotification();
   const { handleDeleteProfile, handleLogout } = useProfileActions();
+  const { books, loading: allBooksLoading } = useBooks();
 
   // Local state
   const [editing, setEditing] = useState(false);
@@ -36,14 +44,28 @@ function ProfilePage() {
   const navigate = useNavigate();
 
   // Form handling
-  const { values, handleChange } = useForm({
+  const { values, handleChange, resetForm } = useForm({
     name: user?.name || "",
     email: user?.email || "",
     password: "",
   });
 
+  useEffect(() => {
+    if (user && editing && (values.name !== user.name || values.email !== user.email)) {
+      resetForm({
+        name: user.name || "",
+        email: user.email || "",
+        password: "",
+      });
+    }
+  }, [editing, user?.id]);
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    if (values.password && values.password.length < 8) {
+      showNotification("Password must be at least 8 characters", true);
+      return;
+    }
     try {
       await updateUser(values);
       setEditing(false);
@@ -79,7 +101,7 @@ function ProfilePage() {
     }
   };
 
-  if (userLoading || booksLoading) return <LoadingState />;
+  if (userLoading || (user?.role === 'librarian' ? allBooksLoading : booksLoading)) return <LoadingState />;
   if (userError || booksError) {
     return (
       <div className="profile-error-message">{userError || booksError}</div>
@@ -132,14 +154,86 @@ function ProfilePage() {
                 <span className="profile-info-label">Email</span>
                 <span className="profile-info-value">{user.email}</span>
               </div>
+              {user?.role === "librarian" && (
+                <div className="profile-info-item">
+                  <span className="profile-info-label">Role</span>
+                  <span className="profile-info-value">Librarian</span>
+                </div>
+              )}
             </div>
 
             {user?.role === "librarian" ? (
-              <div className="profile-section-divider">
-                <FiBook size={20} />
-                <button className="placeholder-btn" disabled>
-                  Placeholder Button
-                </button>
+              <div className="librarian-dashboard">
+                {/* Statistics Cards */}
+                <div className="stats-cards">
+                  <div className="stat-card">
+                    <h4>Total Books</h4>
+                    <p className="stat-value">
+                        {loading ? "Loading..." : books.length}
+                    </p>
+                    <p className="stat-description">in library</p>
+                  </div>
+
+                  <div className="stat-card">
+                    <h4>Registered Users</h4>
+                    <p className="stat-value">
+                    {loading ? "Loading..." : users.length}
+                    </p>
+                    <p className="stat-description">readers</p>
+                  </div>
+
+                  <div className="stat-card">
+                    <h4>Active Loans</h4>
+                    <p className="stat-value">127</p>
+                    <p className="stat-description">this month</p>
+                  </div>
+                </div>
+
+                {/* Quick Action Buttons */}
+                <div className="librarian-actions">
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/books/add')}
+                  >
+                    <FiPlus size={24} />
+                    Add New Book
+                  </button>
+
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/popular-books')}
+                  >
+                    <FiTrendingUp size={24} />
+                    Most Popular Books
+                  </button>
+
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/book-requests')}
+                  >
+                    <FiClock size={24} />
+                    Book Requests
+                  </button>
+
+                  <button
+                    className="librarian-action-btn"
+                    onClick={() => navigate('/admin/user-management')}
+                  >
+                    <FiUsers size={24} />
+                    User Management
+                  </button>
+                </div>
+
+                {/* Recent Activity Section */}
+                <div className="recent-activity">
+                  <h3>Recent Activity</h3>
+                  <ul className="activity-list">
+                    <li>User "John Doe" returned "The Great Gatsby"</li>
+                    <li>New book "Atomic Habits" added to catalog</li>
+                    <li>5 new users registered this week</li>
+                    <li>User "Jane Smith" requested "Dune"</li>
+                  </ul>
+                </div>
               </div>
             ) : (
               <>
@@ -302,7 +396,7 @@ function ProfilePage() {
               <input
                 type="text"
                 name="name"
-                value={values.name}
+                value={values.name || ''}
                 onChange={handleChange}
                 required
                 placeholder="Enter your full name"
@@ -330,7 +424,9 @@ function ProfilePage() {
                 onChange={handleChange}
                 placeholder="Leave blank to keep current"
               />
-              <div className="profile-form-note">Minimum 8 characters</div>
+              {values.password && values.password.length < 8 && (
+                <div className="error-message">Password must be at least 8 characters</div>
+              )}
             </div>
 
             <div className="profile-form-actions">

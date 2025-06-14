@@ -1,0 +1,22 @@
+services:
+
+  backend:
+    build: ./backend
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/library.db:/app/library.db
+    environment:
+      - DATABASE_URL=sqlite:///./library.db
+
+  frontend:
+    depends_on:
+      - backend
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    stdin_open: true
+    tty: true
