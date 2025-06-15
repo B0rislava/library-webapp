@@ -9,10 +9,14 @@ from ..schemas.book_schema import BookCreate
 
 router = APIRouter(tags=["Books"])
 
+
 def require_librarian(user: DBUser = Depends(get_current_user)):
     if user.role != "librarian":
-        raise HTTPException(status_code=403, detail="Only librarians can perform this action")
+        raise HTTPException(
+            status_code=403, detail="Only librarians can perform this action"
+        )
     return user
+
 
 @router.get("/")
 def get_books(search: str = "", db: Session = Depends(get_db)):
@@ -21,8 +25,7 @@ def get_books(search: str = "", db: Session = Depends(get_db)):
     if search:
         search_term = f"%{search.lower()}%"
         query = query.filter(
-            (Book.title.ilike(search_term)) |
-            (Book.author.ilike(search_term))
+            (Book.title.ilike(search_term)) | (Book.author.ilike(search_term))
         )
 
     return query.all()
@@ -38,9 +41,11 @@ def add_book_to_user_profile(
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    existing = db.query(UserBook).filter(
-        UserBook.user_id == current_user.id, UserBook.book_id == book_id
-    ).first()
+    existing = (
+        db.query(UserBook)
+        .filter(UserBook.user_id == current_user.id, UserBook.book_id == book_id)
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Book already in your profile")
 
@@ -61,7 +66,10 @@ def add_book_to_user_profile(
         year=book.year,
         status=userbook.status,
         progress=userbook.progress,
+        current_page=userbook.current_page,
+        total_pages=userbook.total_pages,
     )
+
 
 @router.get("/user-books", response_model=List[UserBookResponse])
 def get_user_books(
@@ -76,7 +84,7 @@ def get_user_books(
     )
 
     response = []
-    #optimize - joined query, relation book = relationship("Book") in UserBook model
+    # optimize - joined query, relation book = relationship("Book") in UserBook model
     for ub in userbooks:
         book = db.query(Book).filter(Book.id == ub.book_id).first()
         response.append(
@@ -87,9 +95,12 @@ def get_user_books(
                 year=book.year,
                 status=ub.status,
                 progress=ub.progress,
+                current_page=ub.current_page,
+                total_pages=ub.total_pages,
             )
         )
     return response
+
 
 @router.put("/user-books/{book_id}", response_model=UserBookResponse)
 def update_user_book(
@@ -98,17 +109,54 @@ def update_user_book(
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user),
 ):
-    userbook = db.query(UserBook).filter(
-        UserBook.user_id == current_user.id,
-        UserBook.book_id == book_id
-    ).first()
+    userbook = (
+        db.query(UserBook)
+        .filter(UserBook.user_id == current_user.id, UserBook.book_id == book_id)
+        .first()
+    )
     if not userbook:
         raise HTTPException(status_code=404, detail="Book not found in your profile")
 
-    if userbook_data.status is not None:
-        userbook.status = userbook_data.status
-    if userbook_data.progress is not None:
-        userbook.progress = userbook_data.progress
+    # Validate total_pages first
+    if userbook_data.total_pages is not None:
+        if userbook_data.total_pages < 0:
+            raise HTTPException(
+                status_code=400, detail="Total pages cannot be negative"
+            )
+        userbook.total_pages = userbook_data.total_pages
+
+    # Then validate current_page
+    if userbook_data.current_page is not None:
+        if userbook_data.current_page < 0:
+            raise HTTPException(
+                status_code=400, detail="Current page cannot be negative"
+            )
+        if (
+            userbook.total_pages > 0
+            and userbook_data.current_page > userbook.total_pages
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Current page cannot be greater than total pages",
+            )
+        userbook.current_page = userbook_data.current_page
+
+    # Update status based on current_page
+    if userbook_data.current_page is not None:
+        if userbook_data.current_page == 0:
+            userbook.status = "Not started"
+        elif userbook_data.current_page >= userbook.total_pages:
+            userbook.status = "Finished"
+        else:
+            userbook.status = "Started"
+
+    # Update progress
+    if userbook.total_pages > 0:
+        userbook.progress = min(
+            100, int((userbook.current_page / userbook.total_pages) * 100)
+        )
+    else:
+        userbook.progress = 0
 
     db.commit()
     db.refresh(userbook)
@@ -122,7 +170,10 @@ def update_user_book(
         year=book.year,
         status=userbook.status,
         progress=userbook.progress,
+        current_page=userbook.current_page,
+        total_pages=userbook.total_pages,
     )
+
 
 @router.delete("/user-books/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_book_from_user_profile(
@@ -130,10 +181,11 @@ def remove_book_from_user_profile(
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user),
 ):
-    userbook = db.query(UserBook).filter(
-        UserBook.user_id == current_user.id,
-        UserBook.book_id == book_id
-    ).first()
+    userbook = (
+        db.query(UserBook)
+        .filter(UserBook.user_id == current_user.id, UserBook.book_id == book_id)
+        .first()
+    )
     if not userbook:
         raise HTTPException(status_code=404, detail="Book not found in your profile")
 
@@ -141,12 +193,14 @@ def remove_book_from_user_profile(
     db.commit()
     return
 
+
 @router.get("/{book_id}")
 def get_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     return book
+
 
 # libarians
 @router.post("/", dependencies=[Depends(require_librarian)])
@@ -173,11 +227,12 @@ def update_book(book_id: int, book: BookCreate, db: Session = Depends(get_db)):
     return db_book
 
 
-@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_librarian)])
-def delete_book(
-        book_id: int,
-        db: Session = Depends(get_db)
-):
+@router.delete(
+    "/{book_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_librarian)],
+)
+def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")

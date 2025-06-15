@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
-import { useUsers } from '../hooks/useUsers';
+import { useUsers } from "../hooks/useUsers";
 import { useUserBooks } from "../hooks/useUserBooks";
 import { useProfileActions } from "../hooks/useProfileActions";
 import { useNotification } from "../hooks/useNotification";
@@ -17,7 +17,7 @@ import {
   FiPlus,
   FiTrendingUp,
   FiClock,
-  FiUsers
+  FiUsers,
 } from "react-icons/fi";
 import Modal from "../modals/ConfirmationModal/ConfirmationModal";
 import LoadingState from "../components/common/LoadingState/LoadingState";
@@ -27,11 +27,23 @@ import "../styles/ProfilePage.css";
 
 function ProfilePage() {
   // Hooks for data management
-  const { user, loading: userLoading, error: userError, updateUser } = useUser();
+  const {
+    user,
+    loading: userLoading,
+    error: userError,
+    updateUser,
+  } = useUser();
   const { users, loading, error } = useUsers();
-  const { books: userBooks, loading: booksLoading, error: booksError,
-          updateStatus, updateProgress, removeBook } = useUserBooks();
-  const { notification, showNotification, closeNotification } = useNotification();
+  const {
+    books: userBooks,
+    loading: booksLoading,
+    error: booksError,
+    updateStatus,
+    updateProgress,
+    removeBook,
+  } = useUserBooks();
+  const { notification, showNotification, closeNotification } =
+    useNotification();
   const { handleDeleteProfile, handleLogout } = useProfileActions();
   const { books, loading: allBooksLoading } = useBooks();
 
@@ -51,7 +63,11 @@ function ProfilePage() {
   });
 
   useEffect(() => {
-    if (user && editing && (values.name !== user.name || values.email !== user.email)) {
+    if (
+      user &&
+      editing &&
+      (values.name !== user.name || values.email !== user.email)
+    ) {
       resetForm({
         name: user.name || "",
         email: user.email || "",
@@ -101,7 +117,11 @@ function ProfilePage() {
     }
   };
 
-  if (userLoading || (user?.role === 'librarian' ? allBooksLoading : booksLoading)) return <LoadingState />;
+  if (
+    userLoading ||
+    (user?.role === "librarian" ? allBooksLoading : booksLoading)
+  )
+    return <LoadingState />;
   if (userError || booksError) {
     return (
       <div className="profile-error-message">{userError || booksError}</div>
@@ -126,16 +146,22 @@ function ProfilePage() {
 
           {!editing && (
             <div className="profile-actions">
-              <button onClick={() => setEditing(true)} className="profile-btn-icon profile-edit-btn">
+              <button
+                onClick={() => setEditing(true)}
+                className="profile-btn-icon profile-edit-btn"
+              >
                 <FiEdit2 size={20} />
               </button>
               <button
                 onClick={() => setShowLogoutModal(true)}
                 className="profile-btn-icon profile-logout-btn"
-                >
+              >
                 <FiLogOut size={20} />
               </button>
-              <button onClick={() => setShowProfileDeleteModal(true)} className="profile-btn-icon profile-delete-btn">
+              <button
+                onClick={() => setShowProfileDeleteModal(true)}
+                className="profile-btn-icon profile-delete-btn"
+              >
                 <FiTrash2 size={20} />
               </button>
             </div>
@@ -169,7 +195,7 @@ function ProfilePage() {
                   <div className="stat-card">
                     <h4>Total Books</h4>
                     <p className="stat-value">
-                        {loading ? "Loading..." : books.length}
+                      {loading ? "Loading..." : books.length}
                     </p>
                     <p className="stat-description">in library</p>
                   </div>
@@ -177,7 +203,7 @@ function ProfilePage() {
                   <div className="stat-card">
                     <h4>Registered Users</h4>
                     <p className="stat-value">
-                    {loading ? "Loading..." : users.length}
+                      {loading ? "Loading..." : users.length}
                     </p>
                     <p className="stat-description">readers</p>
                   </div>
@@ -193,7 +219,7 @@ function ProfilePage() {
                 <div className="librarian-actions">
                   <button
                     className="librarian-action-btn"
-                    onClick={() => navigate('/admin/books/add')}
+                    onClick={() => navigate("/admin/books/add")}
                   >
                     <FiPlus size={24} />
                     Add New Book
@@ -201,7 +227,7 @@ function ProfilePage() {
 
                   <button
                     className="librarian-action-btn"
-                    onClick={() => navigate('/admin/popular-books')}
+                    onClick={() => navigate("/admin/popular-books")}
                   >
                     <FiTrendingUp size={24} />
                     Most Popular Books
@@ -209,7 +235,7 @@ function ProfilePage() {
 
                   <button
                     className="librarian-action-btn"
-                    onClick={() => navigate('/admin/book-requests')}
+                    onClick={() => navigate("/admin/book-requests")}
                   >
                     <FiClock size={24} />
                     Book Requests
@@ -217,7 +243,7 @@ function ProfilePage() {
 
                   <button
                     className="librarian-action-btn"
-                    onClick={() => navigate('/admin/user-management')}
+                    onClick={() => navigate("/admin/user-management")}
                   >
                     <FiUsers size={24} />
                     User Management
@@ -249,19 +275,20 @@ function ProfilePage() {
                       (status) => (
                         <button
                           key={status}
-                          className={`profile-status-tab ${selectedStatus === status ? "active" : ""}`}
+                          className={`profile-status-tab ${
+                            selectedStatus === status ? "active" : ""
+                          }`}
                           onClick={() => setSelectedStatus(status)}
                         >
                           {status}
                         </button>
-                      ),
+                      )
                     )}
                   </div>
                 </div>
 
                 {userBooks.filter(
-                  (b) =>
-                    selectedStatus === "All" || b.status === selectedStatus,
+                  (b) => selectedStatus === "All" || b.status === selectedStatus
                 ).length === 0 ? (
                   <div className="profile-empty-state">
                     <div className="profile-empty-icon">
@@ -281,7 +308,7 @@ function ProfilePage() {
                       .filter(
                         (book) =>
                           selectedStatus === "All" ||
-                          book.status === selectedStatus,
+                          book.status === selectedStatus
                       )
                       .map((book) => (
                         <div key={book.book_id} className="profile-book-card">
@@ -306,23 +333,6 @@ function ProfilePage() {
                             <div className="profile-progress-container">
                               <div className="profile-page-input-group">
                                 <div className="profile-input-row">
-                                  <label>Current page:</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={book.current_page || 0}
-                                    onChange={(e) =>
-                                      handlePageChange(
-                                        book.book_id,
-                                        e.target.value,
-                                        book.total_pages || 0,
-                                      )
-                                    }
-                                    className="profile-page-input"
-                                  />
-                                </div>
-
-                                <div className="profile-input-row">
                                   <label>Total pages:</label>
                                   <input
                                     type="number"
@@ -332,11 +342,35 @@ function ProfilePage() {
                                       handlePageChange(
                                         book.book_id,
                                         book.current_page || 0,
-                                        e.target.value,
+                                        parseInt(e.target.value) || 0
                                       )
                                     }
                                     className="profile-page-input"
                                     placeholder="Enter total"
+                                  />
+                                </div>
+
+                                <div className="profile-input-row">
+                                  <label>Current page:</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={book.total_pages || 0}
+                                    value={book.current_page || 0}
+                                    onChange={(e) =>
+                                      handlePageChange(
+                                        book.book_id,
+                                        parseInt(e.target.value) || 0,
+                                        book.total_pages || 0,
+                                      )
+                                    }
+                                    className="profile-page-input"
+                                    disabled={!book.total_pages}
+                                    title={
+                                      !book.total_pages
+                                        ? "Please enter total pages first"
+                                        : ""
+                                    }
                                   />
                                 </div>
                               </div>
@@ -363,7 +397,7 @@ function ProfilePage() {
                                 onChange={(e) =>
                                   handleStatusChange(
                                     book.book_id,
-                                    e.target.value,
+                                    e.target.value
                                   )
                                 }
                                 className="profile-status-select"
@@ -396,7 +430,7 @@ function ProfilePage() {
               <input
                 type="text"
                 name="name"
-                value={values.name || ''}
+                value={values.name || ""}
                 onChange={handleChange}
                 required
                 placeholder="Enter your full name"
@@ -425,7 +459,9 @@ function ProfilePage() {
                 placeholder="Leave blank to keep current"
               />
               {values.password && values.password.length < 8 && (
-                <div className="error-message">Password must be at least 8 characters</div>
+                <div className="error-message">
+                  Password must be at least 8 characters
+                </div>
               )}
             </div>
 
@@ -469,7 +505,7 @@ function ProfilePage() {
         onConfirm={handleLogout}
         title="Sign Out"
       >
-          <p>Are you sure you want to sign out?</p>
+        <p>Are you sure you want to sign out?</p>
       </Modal>
 
       <Modal
