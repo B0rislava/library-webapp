@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useApi } from './useApi';
+import { useState, useEffect } from "react";
+import { useApi } from "./useApi";
 
 export const useUserBooks = () => {
   const { authFetch } = useApi();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const fetchUserBooks = async () => {
     try {
       setLoading(true);
-      const booksData = await authFetch('/books/user-books');
+      const booksData = await authFetch("/books/user-books");
       setBooks(booksData);
     } catch (err) {
       setError(err.message);
@@ -22,42 +22,71 @@ export const useUserBooks = () => {
   const updateStatus = async (bookId, status) => {
     try {
       await authFetch(`/books/user-books/${bookId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({ status }),
       });
-      setBooks(prev => prev.map(b =>
-        b.book_id === bookId ? { ...b, status } : b
-      ));
+      setBooks((prev) =>
+        prev.map((b) => (b.book_id === bookId ? { ...b, status } : b))
+      );
     } catch (err) {
       throw new Error(err.message);
     }
   };
 
   const updateProgress = async (bookId, currentPage, totalPages) => {
-    const progress = totalPages > 0
-      ? Math.min(100, Math.round((currentPage / totalPages) * 100))
-      : 0;
-    const status = progress >= 100 ? 'Finished' : 'Started';
+    // Convert inputs to numbers
+    const currentPageNum = Number(currentPage);
+    const totalPagesNum = Number(totalPages);
+
+    // Validate inputs
+    if (totalPagesNum < 0) {
+      throw new Error("Total pages cannot be negative");
+    }
+    if (currentPageNum < 0) {
+      throw new Error("Current page cannot be negative");
+    }
+    if (totalPagesNum > 0 && currentPageNum > totalPagesNum) {
+      throw new Error("Current page cannot be greater than total pages");
+    }
+
+    // Calculate progress and status
+    const progress =
+      totalPagesNum > 0
+        ? Math.min(100, Math.round((currentPageNum / totalPagesNum) * 100))
+        : 0;
+
+    let status;
+    if (currentPageNum === 0) {
+      status = "Not started";
+    } else if (currentPageNum >= totalPagesNum) {
+      status = "Finished";
+    } else {
+      status = "Started";
+    }
 
     try {
       await authFetch(`/books/user-books/${bookId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({
-          current_page: currentPage,
-          total_pages: totalPages,
+          current_page: currentPageNum,
+          total_pages: totalPagesNum,
           progress,
-          status
+          status,
         }),
       });
-      setBooks(prev => prev.map(b =>
-        b.book_id === bookId ? {
-          ...b,
-          current_page: currentPage,
-          total_pages: totalPages,
-          progress,
-          status
-        } : b
-      ));
+      setBooks((prev) =>
+        prev.map((b) =>
+          b.book_id === bookId
+            ? {
+                ...b,
+                current_page: currentPageNum,
+                total_pages: totalPagesNum,
+                progress,
+                status,
+              }
+            : b
+        )
+      );
     } catch (err) {
       throw new Error(err.message);
     }
@@ -66,9 +95,9 @@ export const useUserBooks = () => {
   const removeBook = async (bookId) => {
     try {
       await authFetch(`/books/user-books/${bookId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      setBooks(prev => prev.filter(b => b.book_id !== bookId));
+      setBooks((prev) => prev.filter((b) => b.book_id !== bookId));
     } catch (err) {
       throw new Error(err.message);
     }
@@ -77,7 +106,7 @@ export const useUserBooks = () => {
   const addBook = async (bookId) => {
     try {
       await authFetch(`/books/user-books/${bookId}`, {
-        method: 'POST',
+        method: "POST",
       });
       await fetchUserBooks();
     } catch (err) {

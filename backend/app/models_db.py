@@ -4,6 +4,7 @@ from enum import Enum
 from sqlalchemy import Enum as SqlEnum
 from .database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -35,6 +36,7 @@ class ReadingStatus(str, Enum):
     reading = "Started"
     read = "Finished"
 
+
 class UserBook(Base):
     __tablename__ = "user_books"
 
@@ -43,7 +45,8 @@ class UserBook(Base):
     book_id = Column(Integer, ForeignKey("books.id"))
     status = Column(SqlEnum(ReadingStatus), default=ReadingStatus.unread)
     progress = Column(Integer, default=0)
+    current_page = Column(Integer, default=0)
+    total_pages = Column(Integer, default=0)
 
     user = relationship("User", back_populates="user_books")
     book = relationship("Book", back_populates="book_users")
-
