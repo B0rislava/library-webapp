@@ -1,26 +1,24 @@
 from pydantic import BaseModel, EmailStr
 
-class UserSignup(BaseModel):
-    name: str
+
+class UserBase(BaseModel):
     email: EmailStr
+    name: str
+
+
+class UserSignup(UserBase):
     password: str
-    role: str
+    role: str = "user"
+
 
 class UserSignin(BaseModel):
     email: EmailStr
     password: str
 
-class UserUpdate(BaseModel):
-    name: str
-    email: str
-    password: str
 
-class UserResponse(BaseModel):
+class UserResponse(UserBase):
     id: int
-    name: str
-    email: EmailStr
     role: str
 
     class Config:
         from_attributes = True
-
