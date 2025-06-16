@@ -25,8 +25,8 @@ def get_current_user(
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id = payload.get("sub")
+        if not isinstance(user_id, str):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
@@ -97,8 +97,8 @@ def refresh_token(
 ):
     try:
         payload = jwt.decode(credentials.credentials, SECRET, algorithms=["HS256"])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id = payload.get("sub")
+        if not isinstance(user_id, str):
             raise HTTPException(status_code=401, detail="Invalid refresh token")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")

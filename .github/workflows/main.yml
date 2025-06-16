@@ -56,4 +56,4 @@ jobs:
       - name: Run linting
         run: |
           pip install flake8
-          flake8 app tests
+          flake8 --config=.flake8 app tests
