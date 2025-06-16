@@ -1,6 +1,17 @@
 {
+  "name": "library-webapp-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8003",
+    "dev": "uvicorn app.main:app --reload --host 0.0.0.0 --port 8003",
+    "test": "pytest",
+    "lint": "flake8 app tests"
+  },
   "dependencies": {
-    "axios": "^1.9.0",
-    "react-toastify": "^11.0.5"
+    "axios": "^1.9.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.54.0"
   }
 }
