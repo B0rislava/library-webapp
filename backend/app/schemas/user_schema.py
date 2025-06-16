@@ -16,6 +16,10 @@ class UserSignin(BaseModel):
     password: str
 
 
+class UserUpdate(UserBase):
+    pass
+
+
 class UserResponse(UserBase):
     id: int
     role: str
