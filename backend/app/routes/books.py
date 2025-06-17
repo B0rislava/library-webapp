@@ -132,8 +132,8 @@ def update_user_book(
                 status_code=400, detail="Current page cannot be negative"
             )
         if (
-            userbook.total_pages > 0 and
-            userbook_data.current_page > userbook.total_pages
+            userbook.total_pages > 0
+            and userbook_data.current_page > userbook.total_pages
         ):
             raise HTTPException(
                 status_code=400,
